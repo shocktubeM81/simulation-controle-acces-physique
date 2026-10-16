@@ -38,7 +38,6 @@ Vérifier que `/etc/chrony/chrony.conf` inclut
 sudo tee /etc/chrony/conf.d/controle-acces.conf >/dev/null <<'EOF'
 # Serveur NTP du banc, reserve au controleur ESP32.
 bindaddress 192.168.81.1
-binddevice wlan0
 allow 192.168.81.2/32
 EOF
 
@@ -65,6 +64,36 @@ de contrôle; ce n'est pas le résultat de la règle NTP. Utiliser sudo.
 Les règles par adresse IP limitent l'accès au service mais n'authentifient pas
 cryptographiquement les paquets. Ne pas ouvrir UDP 123 sur le routeur Internet.
 Après redémarrage du Pi, activer le point d'accès du banc si nécessaire.
+
+Conserver la liaison par adresse `bindaddress 192.168.81.1`. Ne pas ajouter
+`binddevice wlan0` dans cette configuration : le point d'accès peut recréer
+l'interface, et une liaison au périphérique peut alors empêcher chrony de recevoir
+les nouvelles requêtes, même si tcpdump les voit. La reprise après retrait de
+cette directive a été vérifiée sur le banc; elle est cohérente avec ce mécanisme,
+sans établir à elle seule l'ancien index du socket.
+
+Pour corriger une installation existante contenant cette directive :
+
+~~~bash
+sudo cp -n /etc/chrony/conf.d/controle-acces.conf /etc/chrony/conf.d/controle-acces.conf.avant-interface
+sudo sed -i '/^[[:space:]]*binddevice[[:space:]]/d' /etc/chrony/conf.d/controle-acces.conf
+sudo chronyd -p >/dev/null &&
+sudo systemctl restart chrony
+chronyc waitsync 6 0.1
+~~~
+
+Vérifier à nouveau l'écoute et la règle d'accès. Pour relancer l'acquisition SNTP
+sans perdre la file RAM de l'ESP32, désactiver puis réactiver le point d'accès
+depuis une session Ethernet du Pi; garder la carte alimentée :
+
+~~~bash
+sudo nmcli connection down controle-acces-ap
+sudo nmcli --ask connection up controle-acces-ap
+~~~
+
+Attendre une nouvelle ligne `HORLOGE: Heure recue du Pi`. Une capture NTP montrant
+une requête entrante sans augmentation des compteurs `chronyc clients` ne prouve
+pas un défaut du client ESP32 : vérifier aussi l'écoute et les liaisons du serveur.
 
 ## 2. Compiler sur l'EliteBook
 
