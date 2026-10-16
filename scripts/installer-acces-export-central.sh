@@ -23,16 +23,22 @@ home="$(getent passwd controle-export | cut -d: -f6)"
 [[ "$home" == "/var/lib/controle-export" ]] || {
   echo "Compte controle-export existant avec un autre répertoire : intervention nécessaire." >&2; exit 1;
 }
-install -d -o root -g root -m 0755 "$home/.ssh"
+install -d -o controle-export -g controle-export -m 0700 "$home/.ssh"
 # Le compte ne peut pas modifier authorized_keys. Ne jamais écraser
 # les autres clés sans vérification explicite.
 fichier="$home/.ssh/authorized_keys"
+ligne_attendue="restrict,command=\"$commande\" $identite"
 if [[ -e "$fichier" ]]; then
-  echo "Le fichier $fichier existe déjà : aucune modification automatique." >&2
-  exit 1
+  if [[ "$(cat "$fichier")" != "$ligne_attendue" ]]; then
+    echo "Le fichier $fichier contient une autre configuration." >&2
+    echo "Aucune clé modifiée. Examiner son contenu avant toute correction." >&2
+    exit 1
+  fi
+  echo "La clé restreinte attendue est déjà installée."
+else
+  printf '%s\n' "$ligne_attendue" > "$fichier"
 fi
-printf 'restrict,command="%s" %s\n' "$commande" "$identite" > "$fichier"
-chown root:root "$fichier"
+chown controle-export:controle-export "$fichier"
 chmod 0600 "$fichier"
 echo "Clé restreinte installée pour controle-export."
 echo "Une demande SSH exécute uniquement l'export; aucun terminal ni tunnel n'est autorisé."
