@@ -11,7 +11,7 @@ bash scripts/preparer-raspberry-pi.sh
 bash scripts/installer-serveur-local.sh
 ```
 
-Le fichier `compose.local.yaml` construit une image Debian avec le programme C++ de diagnostic. Il ne lance pas de service permanent.
+Le fichier `compose.local.yaml` construit les exécutables C++ de diagnostic et SQLite dans des conteneurs Debian ARM64. Aucun service permanent n'est lancé.
 
 Pour tester le réseau Ethernet, lancer d'abord le serveur TCP de diagnostic sur l'ordinateur, puis :
 
@@ -21,4 +21,25 @@ sudo docker compose -f compose.local.yaml run --rm diagnostic-reseau ADRESSE_IPV
 
 Les deux appareils doivent appartenir à un réseau autorisé à échanger des connexions TCP. Les adresses sont choisies au moment de l'essai, sans les fixer dans les fichiers source.
 
-**Étapes non encore implémentées :** cache SQLite persistant, synchronisation, contrôle d'accès du Raspberry Pi à l'API centrale et liaison avec le microcontrôleur. Aucune API non authentifiée ne doit être exposée pour accélérer ces étapes.
+## Cache SQLite local (prototype)
+
+Après mise à jour du dépôt :
+
+```bash
+bash scripts/installer-serveur-local.sh
+bash scripts/tester-sqlite-local.sh
+```
+
+Le test initialise un volume Docker nommé `controle-acces-local_donnees_locales`, puis lance **de nouveaux conteneurs éphémères** pour vérifier les décisions `FICTIF-0001` et `FICTIF-0003` à la porte `Laboratoire`. Il vérifie ainsi la persistance entre les conteneurs, mais **pas encore** après un redémarrage matériel.
+
+Pour vérifier manuellement :
+
+```bash
+sudo docker compose -f compose.local.yaml run --rm cache-sqlite initialiser
+sudo docker compose -f compose.local.yaml run --rm cache-sqlite verifier FICTIF-0001 Laboratoire
+sudo docker compose -f compose.local.yaml run --rm cache-sqlite verifier FICTIF-0003 Laboratoire
+```
+
+Le conteneur SQLite fonctionne **sans réseau** (`network_mode: none`), sans privilèges élevés et avec un système de fichiers en lecture seule, à l'exception du volume des données. Il ne contient que des autorisations **fictives et statiques**, dont les identifiants sont volontairement publiés dans le dépôt. Ce prototype **n'a pas** de mécanisme de synchronisation, de contrôle de fraîcheur, de gestion des dates d'autorisation ou d'authentification des équipements.
+
+**Attention :** ne pas utiliser ce prototype pour protéger une porte réelle : une autorisation révoquée au central resterait valide dans ce cache statique. Une stratégie explicite de validité et de révocation, ainsi que l'authentification et le chiffrement des communications, seront nécessaires avant une mise en service.
