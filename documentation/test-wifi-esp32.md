@@ -1,18 +1,16 @@
 # Test Wi-Fi dedie Raspberry Pi / ESP32
 
-**Statut : connexion Wi-Fi, ping, reconnexion automatique sans RESET et signalisation vert/orange valides sur le banc. Les compteurs CPU/FPS sont desactives dans la configuration de reference; verifier leur absence apres recompilation.**
+**Statut : connexion Wi-Fi, ping, reconnexion automatique et retrait CPU/FPS validés. La nouvelle palette liée aux décisions et au bouton de sortie reste à valider sur la carte.**
 
 Ce test ajoute uniquement la connexion Wi-Fi et son etat sur le LCD. Il n'implemente pas le service de decision, l'authentification applicative ou une commande de porte.
 
 ## Signalisation sur le LCD
 
-- **Fond vert, texte blanc** : connexion Wi-Fi et configuration IP acquises.
-- **Fond orange, texte sombre** : connexion en cours, Wi-Fi deconnecte ou configuration locale invalide. La boucle d'affichage reste active et les reconnexions se poursuivent lorsque la configuration est valide.
-- **Fond bleu sombre** : test LCD seul, sans fichier de configuration Wi-Fi local.
+Le Wi-Fi est indique par du texte. Le fond est neutre au repos et pendant la premiere connexion, orange apres detection d'une perte de liaison ou d'une configuration invalide. Il reste orange pendant les nouvelles tentatives jusqu'au retour de la connexion IP.
 
-Les compteurs CPU et FPS de LVGL sont desactives avec `CONFIG_LV_USE_PERF_MONITOR` pour garder l'ecran lisible.
+Le vert est reserve a une sortie autorisee simulee et le rouge a un futur refus effectif. Voir la [simulation de sortie manuelle](sortie-manuelle-esp32.md). Une erreur reste prioritaire sur la couleur verte.
 
-Le texte precise l'etat en complement de la couleur. Le vert ne garantit pas que le service applicatif du Raspberry Pi est disponible; l'orange ne signifie pas qu'un controle d'acces autonome fonctionne. Aucun mode de decision hors ligne n'est implemente.
+Les compteurs CPU/FPS sont desactives. Aucun service de decision d'acces par badge n'est implemente.
 
 ## Configuration
 
@@ -96,7 +94,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## Validation a effectuer
 
-1. Le LCD affiche `LCD OK`, `Wi-Fi connecte` et `192.168.81.2`, sur fond vert.
+1. Le LCD affiche `PRET`, `Wi-Fi connecte` et `192.168.81.2`, sur fond neutre lorsque la sortie est au repos.
 2. Le terminal indique `RESEAU: Wi-Fi connecte, IP=192.168.81.2`.
 3. Depuis le Pi, verifier l'association et la liaison IP :
 
@@ -120,7 +118,7 @@ Attendre la detection de la coupure sur le LCD, puis laisser le reseau arrete au
 sudo nmcli --ask connection up controle-acces-ap
 ```
 
-Attendre la confirmation d'activation. Sans appuyer sur RESET ni debrancher l'ESP32, attendre le retour du fond vert et de `Wi-Fi connecte / 192.168.81.2`, puis lancer sur le Pi :
+Attendre la confirmation d'activation. Sans appuyer sur RESET ni debrancher l'ESP32, attendre le retour de `Wi-Fi connecte / 192.168.81.2` et du fond neutre si la sortie est au repos, puis lancer sur le Pi :
 
 ```bash
 ping -c 4 192.168.81.2
@@ -176,4 +174,4 @@ Verifier l'option avant de televerser :
 grep '^# CONFIG_LV_USE_PERF_MONITOR is not set$' sdkconfig
 ```
 
-Apres televersement, verifier l'absence des compteurs CPU/FPS et le maintien du signalement vert/orange.
+Apres televersement, verifier l'absence des compteurs CPU/FPS et le maintien de la signalisation d'erreur orange et de l'etat Wi-Fi en texte.

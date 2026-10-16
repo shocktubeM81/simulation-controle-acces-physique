@@ -10,7 +10,7 @@ Projet étudiant de simulation d'un **système de contrôle d'accès physique di
 | --- | --- | --- |
 | **Serveur central** | Gestion des données fictives, des autorisations et de leur exportation | Ordinateur Linux, PostgreSQL et PostgREST dans Docker Compose |
 | **Serveur local** | Conservation d'un cache d'autorisations, synchronisation et vérifications locales | Raspberry Pi, SQLite, synchronisation SSH restreinte et minuteurs systemd |
-| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; test LCD validé, communications à développer |
+| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; LCD et Wi-Fi validés, simulation de sortie par BOOT à valider |
 | **Entrées/sorties de porte** | Lecture d'identifiant, détection d'état et commande d'un actionneur de démonstration | Étape future; éventuellement un second ESP32 sans écran |
 
 La **décision d'autorisation** doit provenir du serveur local et de son cache; l'ESP32 ne doit pas devenir une copie autonome de la base d'autorisations. Une première interface HTTP/JSON sur le réseau local est envisagée, mais n'est **pas encore implémentée**. Voir [la conception du contrôleur ESP32](documentation/controleur-esp32.md).
@@ -43,7 +43,7 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 - **Connexion et alimentation :** port USB-C, utilisable pour la programmation et l'alimentation de la carte.
 - **Périphériques intégrés :** emplacement microSD/TF, DEL RGB, boutons `BOOT` et `RST`.
 - **Entrées/sorties :** broches GPIO accessibles sur la carte; l'écran emploie notamment **GPIO6/7** (SPI), **GPIO14/15** (CS/DC) et **GPIO21/22** (RST/rétroéclairage). Le lecteur microSD partage GPIO6/7 et utilise GPIO4 (CS) et GPIO5 (MISO); la DEL RGB utilise GPIO8. Vérifier les fonctions et conflits de brochage avant d'ajouter des périphériques.
-- **État du projet :** test LCD compilé, téléversé et validé après coupure d’alimentation. Affichage autonome à 50 % de luminosité; Wi-Fi, microSD, LED RGB et communications Raspberry Pi non testés par ce programme.
+- **État du projet :** test LCD compilé, téléversé et validé après coupure d’alimentation. Affichage à 50 % de luminosité, connexion Wi-Fi et reconnexion automatique validés. Simulation de sortie manuelle par BOOT ajoutée, à valider sur la carte; microSD, LED RGB et échanges applicatifs Raspberry Pi restent à tester ou à développer.
 
 Documentation constructeur : [ESP32-C6-LCD-1.47 — Waveshare](https://docs.waveshare.com/ESP32-C6-LCD-1.47). Le schéma et le brochage du constructeur doivent être consultés avant tout raccordement. Waveshare recommande de **limiter le rétroéclairage à 50 %** pour éviter une surchauffe de l'écran.
 
@@ -111,7 +111,7 @@ Le programme de test LCD est situé dans `controleur-esp32/`. Il se compile ind�
 - **Pilote ST7789 et adaptation LVGL issus de l’exemple Waveshare**, avec initialisation SPI autonome et rétroéclairage limité à 50 %.
 - **Interface USB Serial/JTAG** pour le téléversement et le diagnostic.
 
-La compilation, le téléversement et l’affichage après coupure d’alimentation ont été validés. Les communications réseau restent à implémenter.
+La compilation, le téléversement, l’affichage et la connexion Wi-Fi avec reconnexion automatique ont été validés. Le programme ajoute une [simulation de sortie manuelle par BOOT](documentation/sortie-manuelle-esp32.md), à valider sur la carte. Les échanges applicatifs avec le Raspberry Pi restent à implémenter.
 
 Voir le [guide d’installation et du premier test LCD](documentation/installation-esp32.md).
 

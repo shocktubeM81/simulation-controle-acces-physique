@@ -4,7 +4,7 @@
 
 Ce guide permet de compiler et de téléverser le test LCD situé dans `controleur-esp32/`.
 
-Le programme affiche `LCD OK` et `ESP32-C6` sur fond bleu sombre, avec un rétroéclairage réglé à 50 %. Sans fichier de configuration Wi-Fi local, il n’initialise ni le Wi-Fi, ni la microSD, ni la LED RGB. Un [test Wi-Fi optionnel](test-wifi-esp32.md) est disponible; sa validation matérielle reste à effectuer. Les communications avec le Raspberry Pi restent à implémenter.
+Le premier test matériel a validé `LCD OK / ESP32-C6` sur fond bleu sombre. Le programme actuel affiche `PRET / BOOT: sortie` et l’état réseau, avec un rétroéclairage réglé à 50 %. Voir le [test de sortie manuelle](sortie-manuelle-esp32.md) pour l’interface actuelle. Sans fichier de configuration Wi-Fi local, il n’initialise ni le Wi-Fi, ni la microSD, ni la LED RGB. Un [test Wi-Fi optionnel](test-wifi-esp32.md) est disponible; sa validation matérielle reste à effectuer. Les communications avec le Raspberry Pi restent à implémenter.
 
 ## Configuration de référence
 
@@ -135,7 +135,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 Vérifier :
 
 - La vérification d’intégrité du téléversement réussit.
-- L’écran affiche `LCD OK` et `ESP32-C6`.
+- L’écran affiche `PRET / BOOT: sortie`, ainsi que `ESP32-C6` en mode LCD seul ou l’état réseau si le Wi-Fi est configuré.
 - Le terminal affiche `Test LCD actif, luminosite 50 %`.
 - L’affichage reste stable au moins 30 secondes.
 

@@ -14,9 +14,9 @@ static const char *TAG = "RESEAU";
 static QueueHandle_t file_etats;
 
 #if WIFI_LOCAL_PRESENT
-static void publier_etat(const char *texte)
+static void publier_etat(const char *texte, bool erreur)
 {
-    EtatReseau etat = {0};
+    EtatReseau etat = {.erreur = erreur};
     snprintf(etat.texte, sizeof(etat.texte), "%s", texte);
     xQueueOverwrite(file_etats, &etat);
 }
@@ -44,6 +44,7 @@ static const uint64_t delai_reconnexion_us = 5000000;
 static bool wifi_demarre;
 static bool associe;
 static bool connexion_en_cours;
+static bool liaison_en_erreur;
 
 static void annuler_reconnexion(void)
 {
@@ -56,7 +57,7 @@ static void annuler_reconnexion(void)
 static void planifier_reconnexion(void)
 {
     annuler_reconnexion();
-    publier_etat("Wi-Fi deconnecte\nNouvel essai: 5 s");
+    publier_etat("Wi-Fi deconnecte\nNouvel essai: 5 s", true);
     ESP_LOGI(TAG, "Nouvelle tentative Wi-Fi dans 5 secondes");
     ESP_ERROR_CHECK(esp_timer_start_periodic(
         minuterie_reconnexion, delai_reconnexion_us));
@@ -80,11 +81,12 @@ static void connecter(void)
     if (!wifi_demarre || associe || connexion_en_cours) {
         return;
     }
-    publier_etat("Wi-Fi connexion...");
+    publier_etat("Wi-Fi connexion...", liaison_en_erreur);
     esp_err_t resultat = esp_wifi_connect();
     if (resultat == ESP_OK) {
         connexion_en_cours = true;
     } else {
+        liaison_en_erreur = true;
         ESP_LOGW(TAG, "Connexion impossible: %s", esp_err_to_name(resultat));
         planifier_reconnexion();
     }
@@ -98,19 +100,22 @@ static void evenement_reseau(void *contexte, esp_event_base_t base,
         connecter();
     } else if (base == WIFI_EVENT && evenement == WIFI_EVENT_STA_START) {
         wifi_demarre = true;
+        liaison_en_erreur = false;
         connecter();
     } else if (base == WIFI_EVENT && evenement == WIFI_EVENT_STA_STOP) {
         wifi_demarre = false;
         associe = false;
         connexion_en_cours = false;
         annuler_reconnexion();
-        publier_etat("Wi-Fi arrete");
+        liaison_en_erreur = true;
+        publier_etat("Wi-Fi arrete", true);
     } else if (base == WIFI_EVENT && evenement == WIFI_EVENT_STA_CONNECTED) {
         associe = true;
         connexion_en_cours = false;
         annuler_reconnexion();
     } else if (base == WIFI_EVENT && evenement == WIFI_EVENT_STA_DISCONNECTED) {
         const wifi_event_sta_disconnected_t *rupture = donnees;
+        liaison_en_erreur = true;
         associe = false;
         connexion_en_cours = false;
         ESP_LOGW(TAG, "Deconnexion Wi-Fi, raison=%u", (unsigned)rupture->reason);
@@ -119,6 +124,7 @@ static void evenement_reseau(void *contexte, esp_event_base_t base,
         }
     } else if (base == IP_EVENT && evenement == IP_EVENT_STA_GOT_IP) {
         const ip_event_got_ip_t *adresse = donnees;
+        liaison_en_erreur = false;
         EtatReseau etat = {.connecte = true};
         snprintf(etat.texte, sizeof(etat.texte),
                  "Wi-Fi connecte\n" IPSTR, IP2STR(&adresse->ip_info.ip));
@@ -142,7 +148,7 @@ void reseau_initialiser(void)
     if (longueur_ssid == 0 || longueur_ssid > 32 ||
         longueur_secret < 8 || longueur_secret > 63 ||
         strcmp(mot_de_passe, "REMPLACER_LOCALEMENT") == 0) {
-        publier_etat("Wi-Fi non configure");
+        publier_etat("Wi-Fi non configure", true);
         ESP_LOGE(TAG, "Verifier la configuration locale, sans publier le secret");
         return;
     }
@@ -189,7 +195,7 @@ void reseau_initialiser(void)
     configuration.sta.pmf_cfg.capable = true;
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &configuration));
-    publier_etat("Wi-Fi connexion...");
+    publier_etat("Wi-Fi connexion...", false);
     ESP_ERROR_CHECK(esp_wifi_start());
 #else
     ESP_LOGI(TAG, "Mode LCD: fichier configuration-wifi.locale.h absent");

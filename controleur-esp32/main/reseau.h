@@ -6,6 +6,8 @@
 typedef struct {
     /* Association et configuration IP acquises; pas un etat du service du Pi. */
     bool connecte;
+    /* Reste vrai pendant les reconnexions apres une perte de liaison. */
+    bool erreur;
     char texte[80];
 } EtatReseau;
 
