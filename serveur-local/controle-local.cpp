@@ -2,6 +2,7 @@
 // Ce programme n'ouvre aucun port et ne synchronise pas encore le serveur central.
 #include <sqlite3.h>
 #include <iostream>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 
@@ -87,8 +88,30 @@ void initialiser() {
     std::cout << "Cache SQLite prêt : " << chemin << '\n';
 }
 
-void verifier_acces(const std::string& identifiant, const std::string& porte) {
+void verifier_acces(const std::string& identifiant, const std::string& porte,
+                    bool exiger_synchro) {
     Base base(false);
+    if (exiger_synchro) {
+        sqlite3_stmt* horodatage = nullptr;
+        const int prep = sqlite3_prepare_v2(base.get(),
+            "SELECT instant_local FROM synchronisation WHERE id = 1",
+            -1, &horodatage, nullptr);
+        if (prep != SQLITE_OK) {
+            if (horodatage) sqlite3_finalize(horodatage);
+            std::cout << "REFUSE : aucune synchronisation validée\\n";
+            return;
+        }
+        const int result = sqlite3_step(horodatage);
+        const long long dernier = result == SQLITE_ROW ?
+            sqlite3_column_int64(horodatage, 0) : -1;
+        sqlite3_finalize(horodatage);
+        const long long maintenant = static_cast<long long>(std::time(nullptr));
+        // Profil standard, valeur documentée dans politique-synchronisation.json.
+        if (dernier < 0 || maintenant < dernier || maintenant - dernier > 3600) {
+            std::cout << "REFUSE : cache absent, expiré ou horloge incohérente\\n";
+            return;
+        }
+    }
     const char* requete = R"SQL(
         SELECT EXISTS (
           SELECT 1 FROM identifiants i
@@ -97,6 +120,8 @@ void verifier_acces(const std::string& identifiant, const std::string& porte) {
           JOIN portes po ON po.nom = a.nom_porte
           WHERE i.code = ?1 AND po.nom = ?2
             AND i.actif = 1 AND p.actif = 1 AND po.actif = 1
+          AND (a.date_debut IS NULL OR datetime(a.date_debut) <= datetime('now'))
+          AND (a.date_fin IS NULL OR datetime(a.date_fin) > datetime('now'))
         )
     )SQL";
     sqlite3_stmt* statement = nullptr;
@@ -128,7 +153,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (argc == 4 && std::string(argv[1]) == "verifier") {
-            verifier_acces(argv[2], argv[3]);
+            verifier_acces(argv[2], argv[3], false);
             return 0;
         }
         std::cerr << "Usage : controle-local initialiser | verifier CODE PORTE\n";
