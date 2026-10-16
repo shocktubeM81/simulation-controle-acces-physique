@@ -16,7 +16,11 @@ Le dépôt doit permettre à une autre équipe de **comprendre, compiler, tester
 | `serveur-local/importer-snapshot.py` | Validation et import atomique d'un instantané reçu par SSH |
 | `serveur-local/surveiller-cache.py` | Évaluation indépendante de l'âge du cache |
 | `configuration/` | Paramètres et hypothèses de simulation |
-| `scripts/` | Installation, exploitation et vérifications reproductibles |
+| `scripts/installer-central.sh` | Déployer le central et gérer la clé d'export SSH |
+| `scripts/installer-pi.sh` | Déployer le Pi, conserver la configuration et mettre à jour systemd |
+| `scripts/verifier.sh` | Centraliser les tests et diagnostics |
+| `scripts/service-systemd.sh` | Exécuter les deux tâches périodiques sans logique en doublon |
+| `scripts/exporter-autorisations-ssh.sh` | Appliquer la commande d'export restreinte côté central |
 | `systemd/` | Synchronisation et surveillance périodiques |
 
 `controle-local` utilise deux bases distinctes : `autorisations.sqlite3` (jeu d'essai statique) et `autorisations-synchronisees.sqlite3` (cache central validé). **Ne pas fusionner les modes de diagnostic et d'exploitation.**
@@ -57,9 +61,9 @@ Un `TODO` doit décrire un manque réel : par exemple, le moteur C++ utilise enc
 **Sur le Raspberry Pi**, après avoir suivi `INSTALLATION.md` :
 
 ```bash
-bash scripts/installer-serveur-local.sh
-bash scripts/tester-surveillance-cache.sh
-bash scripts/verifier-serveur-local.sh
+bash scripts/installer-pi.sh
+bash scripts/verifier.sh seuils
+bash scripts/verifier.sh pi
 ```
 
 La dernière commande exige une synchronisation récente et des minuteurs actifs. Elle ne modifie pas les données. Les programmes TCP de diagnostic ne sont pas une preuve de sécurité réseau.
