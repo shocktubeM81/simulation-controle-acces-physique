@@ -4,5 +4,5 @@ set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 command -v docker >/dev/null || { echo "Docker est requis : bash scripts/preparer-raspberry-pi.sh" >&2; exit 1; }
 sudo docker compose version >/dev/null
-sudo docker compose -f compose.local.yaml build
+sudo docker compose -f compose.local.yaml build diagnostic-reseau
 echo "Image de diagnostic ARM64 construite. Aucun service permanent n'a été lancé."
