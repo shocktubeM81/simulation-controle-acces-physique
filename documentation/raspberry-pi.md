@@ -160,3 +160,14 @@ Ce test ne doit être exécuté que sur un réseau local de confiance. Si un par
 Après validation de SSH et du réseau physique, nous créerons une base SQLite locale et définirons la synchronisation des autorisations. L'accès distant à l'API centrale nécessitera un mécanisme d'authentification des clients et de protection des communications avant toute ouverture de PostgREST.
 
 Référence : [documentation officielle Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html).
+
+## Test réseau automatisé
+
+Une fois le serveur central démarré sur l'EliteBook avec `./build/serveur-central 10.0.0.106 5050`, lancer depuis le Raspberry Pi :
+
+```bash
+git pull --ff-only origin main
+bash scripts/tester-reseau.sh 10.0.0.106 5050
+```
+
+Le script utilise le client C++ déjà compilé et confirme la connexion ainsi que l'accusé de réception. Il ne démarre pas lui-même le serveur central et ne modifie pas le réseau. Les adresses du laboratoire sont des exemples de configuration locale et pourront changer si le serveur DHCP leur en attribue d'autres.
