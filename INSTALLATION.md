@@ -181,6 +181,11 @@ Après les étapes PostgreSQL, suivre le [guide PostgREST](documentation/interfa
 
 La préparation de Raspberry Pi OS, de SSH, du réseau Ethernet et du premier essai TCP entre les deux ordinateurs est décrite dans le [guide Raspberry Pi](documentation/raspberry-pi.md).
 
+
+## Installation automatisée du Raspberry Pi
+
+Sur le Raspberry Pi 4 (Debian 13 ARM64), exécuter `bash scripts/installer-serveur-local.sh` depuis le dépôt après son clonage. Voir le [guide du Raspberry Pi](documentation/raspberry-pi.md) pour la procédure complète.
+
 ## Précautions
 
 - N'utiliser que des données fictives.
