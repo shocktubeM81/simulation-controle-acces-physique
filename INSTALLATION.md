@@ -50,7 +50,7 @@ bash scripts/preparer-raspberry-pi.sh
 bash scripts/installer-serveur-local.sh
 ```
 
-Le premier script installe Docker Engine et Compose depuis le dépôt officiel sur Debian 13 ARM64 si nécessaire; il exige `sudo` et ne modifie pas la configuration SSH. Le second construit l'image de diagnostic. Examiner le script avant de l'exécuter; les autres distributions demandent une adaptation.
+Le premier script installe Docker Engine et Compose depuis le dépôt officiel sur Debian 13 ARM64 si nécessaire; il exige `sudo` et ne modifie pas la configuration SSH. Le second construit l'image Docker commune aux diagnostics, à SQLite et à la surveillance. Si la synchronisation est déjà configurée, il réinstalle également les deux unités systemd sans effacer les données. Examiner le script avant de l'exécuter; les autres distributions demandent une adaptation.
 
 Cette image contient le client C++ de diagnostic réseau et un premier prototype autonome de cache SQLite (autorisations fictives et statiques). Pour vérifier les décisions et la persistance du volume entre conteneurs :
 
@@ -58,7 +58,7 @@ Cette image contient le client C++ de diagnostic réseau et un premier prototype
 bash scripts/tester-sqlite-local.sh
 ```
 
-La **synchronisation** des permissions, leur expiration et la communication authentifiée avec le serveur central restent à développer. Le moteur Docker et Compose doivent préalablement être installés sur le Raspberry Pi.
+La synchronisation chiffrée et le contrôle de fraîcheur sont maintenant opérationnels dans le prototype, selon les étapes 5 à 7. Le moteur Docker et Compose doivent préalablement être installés sur le Raspberry Pi.
 
 ## 3. Essai réseau (facultatif)
 
@@ -89,7 +89,7 @@ Les anciens fichiers `.env.api` et les anciennes bases installées sur l'hôte n
 - L'API de démonstration est accessible seulement sur `127.0.0.1:3000`.
 - PostgreSQL est privé au réseau Docker, sans port publié sur l'ordinateur.
 - Les secrets locaux (`secrets/`, `.env.docker.api`) sont ignorés par Git.
-- La communication sécurisée entre l'ordinateur et le Raspberry Pi **reste à concevoir** avant d'ouvrir l'API au réseau.
+- Le transfert actuel utilise une identité SSH restreinte; l'API HTTP reste sur boucle locale et ne doit pas être exposée au réseau.
 
 Détails : [architecture et sécurité](documentation/securite.md), [Raspberry Pi](documentation/raspberry-pi.md), [interface API](documentation/interface-api.md).
 
@@ -134,9 +134,7 @@ il n'est pas ouvert au réseau du Raspberry Pi. Le Raspberry Pi utilise SSH
 et une commande `curl` exécutée à distance pour obtenir les données.
 Le conteneur SQLite lui-même n'a aucun accès réseau.
 
-**Limites :** prototype manuel, données fictives, pas d'ordonnancement
-automatique des synchronisations, compte SSH distant non restreint et
-politique de révocation à améliorer. Voir
+**Historique :** ce mode de transfert manuel vers le compte personnel a été remplacé par le compte SSH restreint `controle-export` et les minuteurs systemd ci-dessous. Voir
 [politique et sécurité](documentation/politique-synchronisation.md).
 
 ## 6. Connexion SSH restreinte et synchronisation périodique
@@ -216,9 +214,7 @@ bash scripts/installer-serveur-local.sh
 bash scripts/tester-surveillance-cache.sh
 ```
 
-Le script d'installation détecte automatiquement la configuration systemd
-existante, installe le moniteur et active son minuteur **si** celui de
-synchronisation est actif. La surveillance a lieu chaque minute. Aucun
+Le script d'installation revalide l'identité SSH restreinte, réinstalle les unités systemd de synchronisation et installe le moniteur. Celui-ci est activé si le minuteur de synchronisation est actif. La surveillance a lieu chaque minute. Aucun
 redémarrage de Docker ni suppression du volume SQLite n'est nécessaire.
 
 ```bash
