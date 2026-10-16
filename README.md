@@ -10,7 +10,7 @@ Projet étudiant de simulation d'un **système de contrôle d'accès physique di
 | --- | --- | --- |
 | **Serveur central** | Gestion des données fictives, des autorisations et de leur exportation | Ordinateur Linux, PostgreSQL et PostgREST dans Docker Compose |
 | **Serveur local** | Conservation d'un cache d'autorisations, synchronisation et vérifications locales | Raspberry Pi, SQLite, synchronisation SSH restreinte et minuteurs systemd |
-| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; intégration logicielle à développer |
+| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; test LCD validé, communications à développer |
 | **Entrées/sorties de porte** | Lecture d'identifiant, détection d'état et commande d'un actionneur de démonstration | Étape future; éventuellement un second ESP32 sans écran |
 
 La **décision d'autorisation** doit provenir du serveur local et de son cache; l'ESP32 ne doit pas devenir une copie autonome de la base d'autorisations. Une première interface HTTP/JSON sur le réseau local est envisagée, mais n'est **pas encore implémentée**. Voir [la conception du contrôleur ESP32](documentation/controleur-esp32.md).
@@ -27,7 +27,7 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 | --- | --- | --- | --- |
 | Ordinateur central | **HP EliteBook 840 G6**, architecture x86-64 | Hébergement du serveur central et environnement de développement | Utilisé |
 | Serveur local | **Raspberry Pi 4**, architecture ARM64 | Cache local, synchronisation et futurs échanges IP avec le contrôleur | Utilisé |
-| Carte de prototypage | **Waveshare ESP32-C6-LCD-1.47**, version standard, sans connecteurs à broches présoudés | Premiers essais d'interface et de communication | Carte disponible; intégration à réaliser |
+| Carte de prototypage | **Waveshare ESP32-C6-LCD-1.47**, version standard, sans connecteurs à broches présoudés | Premiers essais d'interface et de communication | Affichage LCD autonome validé |
 | Réseau | Réseau IP local entre le central et le Raspberry Pi; Wi-Fi 2,4 GHz prévu pour l'ESP32 | Communication entre les niveaux | Partie central ↔ Pi utilisée; liaison ESP32 à développer |
 
 **Détails à relever pour une reproduction stricte :** capacité RAM et révision du Raspberry Pi 4, révision matérielle de la carte Waveshare (si indiquée), versions du micrologiciel ESP32 et références des futurs périphériques. Ces valeurs ne sont pas inventées lorsqu'elles n'ont pas encore été vérifiées.
@@ -36,14 +36,14 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 
 **Référence de la carte actuellement disponible :** `ESP32-C6-LCD-1.47` (SKU Waveshare **28563**, sans suffixe `-M`). Il s'agit de la carte avec écran, et **non** de la variante tactile ni d'un ESP32 DevKit générique.
 
-- **Microcontrôleur :** Espressif **ESP32-C6FH4**, architecture RISC-V, jusqu'à 160 MHz.
-- **Mémoire Flash :** 4 Mo intégrés.
+- **Microcontrôleur de l’exemplaire testé :** Espressif **ESP32-C6FH8**, révision silicium **v0.2**, architecture RISC-V, jusqu’à 160 MHz.
+- **Mémoire flash détectée :** **8 Mo**, confirmés avec `esptool flash_id`. La fiche constructeur consultée décrit une variante de 4 Mo; vérifier la puce et la capacité de chaque exemplaire.
 - **Écran :** LCD TFT couleur de 1,47 po, résolution **172 × 320 pixels**, contrôleur **ST7789**, interface SPI; **non tactile**.
 - **Communications sans fil :** Wi-Fi 2,4 GHz (Wi-Fi 6) et Bluetooth Low Energy 5; IEEE 802.15.4 également pris en charge par l'ESP32-C6.
 - **Connexion et alimentation :** port USB-C, utilisable pour la programmation et l'alimentation de la carte.
 - **Périphériques intégrés :** emplacement microSD/TF, DEL RGB, boutons `BOOT` et `RST`.
 - **Entrées/sorties :** broches GPIO accessibles sur la carte; l'écran emploie notamment **GPIO6/7** (SPI), **GPIO14/15** (CS/DC) et **GPIO21/22** (RST/rétroéclairage). Le lecteur microSD partage GPIO6/7 et utilise GPIO4 (CS) et GPIO5 (MISO); la DEL RGB utilise GPIO8. Vérifier les fonctions et conflits de brochage avant d'ajouter des périphériques.
-- **État du projet :** carte identifiée et disponible; le programme embarqué propre au projet reste à développer et à tester.
+- **État du projet :** test LCD compilé, téléversé et validé après coupure d’alimentation. Affichage autonome à 50 % de luminosité; Wi-Fi, microSD, LED RGB et communications Raspberry Pi non testés par ce programme.
 
 Documentation constructeur : [ESP32-C6-LCD-1.47 — Waveshare](https://docs.waveshare.com/ESP32-C6-LCD-1.47). Le schéma et le brochage du constructeur doivent être consultés avant tout raccordement. Waveshare recommande de **limiter le rétroéclairage à 50 %** pour éviter une surchauffe de l'écran.
 
@@ -99,17 +99,21 @@ Le port de PostgREST reste lié à `127.0.0.1:3000` sur l'ordinateur central; il
 
 Les outils de compilation et les bibliothèques sont installés **dans les images Docker** par [`docker/Dockerfile.local`](docker/Dockerfile.local) : il n'est pas nécessaire de les installer séparément sur l'hôte pour suivre la procédure normale.
 
-### 3.3. Développement ESP32 — prochaine étape
+### 3.3. Développement ESP32 — configuration validée
 
-Ces outils sont **prévus**, mais ne constituent pas encore des prérequis pour exécuter la partie central/Raspberry Pi déjà développée :
+Le programme de test LCD est situé dans `controleur-esp32/`. Il se compile indépendamment des programmes serveur à la racine.
 
-- **Visual Studio Code** : environnement de programmation envisagé.
-- **Extension Espressif IDF pour VS Code** et **ESP-IDF** : compilation, configuration et programmation de l'ESP32-C6; Waveshare demande **ESP-IDF 5.3.1 ou une version ultérieure** pour ses exemples.
-- **Pilote ou interface USB série selon le poste utilisé** : connexion, flashage et diagnostic de la carte.
-- **Bibliothèques pour l'écran (ST7789) et, si nécessaire, LVGL** : interface graphique embarquée.
-- **Bibliothèques réseau et périphériques** : selon le protocole et les modules retenus.
+- **Hôte de compilation :** Ubuntu 26.04.1 LTS, x86-64, sur HP EliteBook 840 G6.
+- **Visual Studio Code 1.142.0**, avec Remote – SSH pour le développement distant.
+- **Extension officielle Espressif IDF 2.3.0**, installée sur l’hôte de compilation.
+- **ESP-IDF v5.3.6**, installé avec Espressif Installation Manager.
+- **LVGL 8.3.11**, conservé dans les composants du contrôleur.
+- **Pilote ST7789 et adaptation LVGL issus de l’exemple Waveshare**, avec initialisation SPI autonome et rétroéclairage limité à 50 %.
+- **Interface USB Serial/JTAG** pour le téléversement et le diagnostic.
 
-La **version exacte d'ESP-IDF, des bibliothèques et du micrologiciel** sera consignée après le premier essai compilé et validé. Aucun firmware fonctionnel n'est revendiqué à ce stade.
+La compilation, le téléversement et l’affichage après coupure d’alimentation ont été validés. Les communications réseau restent à implémenter.
+
+Voir le [guide d’installation et du premier test LCD](documentation/installation-esp32.md).
 
 ### 3.4. Logiciels utiles, mais facultatifs
 
