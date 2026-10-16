@@ -28,5 +28,17 @@ services:
     volumes:
       - donnees_locales:/donnees
 
+  importer-sqlite:
+    image: controle-acces-local-diagnostic-reseau:latest
+    profiles: ["synchronisation"]
+    entrypoint: ["python3", "/usr/local/bin/importer-snapshot.py"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    volumes:
+      - donnees_locales:/donnees
+
 volumes:
   donnees_locales:
