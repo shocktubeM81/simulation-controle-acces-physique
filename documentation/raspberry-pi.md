@@ -11,6 +11,36 @@ Cette procédure est destinée au Raspberry Pi 4 du laboratoire de simulation de
 
 **La synchronisation des autorisations et le réseau de production ne sont pas encore configurés.** L'API PostgREST sur l'EliteBook doit continuer à n'écouter que sur `127.0.0.1:3000`.
 
+## Installation automatisée sur le Raspberry Pi existant
+
+Si le Raspberry Pi possède déjà Debian, une connexion SSH et une connexion Internet, l'installation de l'environnement logiciel peut être automatisée.
+
+Sur le Raspberry Pi (et non sur l'EliteBook) :
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+mkdir -p ~/projets
+cd ~/projets
+git clone https://github.com/shocktubeM81/simulation-controle-acces-physique.git
+cd simulation-controle-acces-physique
+bash scripts/installer-serveur-local.sh
+```
+
+Si le dépôt est déjà cloné, ne pas le cloner une deuxième fois. Se placer dans son dossier, récupérer les mises à jour et relancer le script :
+
+```bash
+cd ~/projets/simulation-controle-acces-physique
+git pull --ff-only origin main
+bash scripts/installer-serveur-local.sh
+```
+
+Le script vérifie Debian et l'architecture ARM64, installe Git, CMake, le compilateur C++ et SQLite, puis compile les deux programmes et affiche l'état du réseau. Il peut être relancé sans réinstaller le système ni toucher à la configuration SSH ou au réseau.
+
+**Important :** cette automatisation prépare l'environnement; elle ne lance aucun service permanent et ne configure pas encore la synchronisation avec PostgreSQL. Le test TCP entre les deux machines sera effectué séparément.
+
+---
+
 ## 1. Choisir le système d'exploitation
 
 Si le Raspberry Pi possède déjà un système Linux fonctionnel avec SSH, **ne pas le réinstaller** : passer à l'étape 3.
