@@ -12,6 +12,12 @@ Pour un serveur Ubuntu sur lequel PostgreSQL et Docker sont déjà installés, u
 bash scripts/installer-serveur-central.sh
 ```
 
+Pour vérifier à tout moment les deux décisions attendues et la restriction d'écoute locale :
+
+```bash
+bash scripts/verifier-installation.sh
+```
+
 Le script peut être relancé : il conserve la base et les données existantes, évite de réimporter les jeux fictifs et ne remplace pas un fichier `.env.api` déjà présent. Il crée un mot de passe technique aléatoire seulement lors de la première configuration. **Il n'efface aucune donnée.** Lors d'une réinstallation sur une autre machine, le rôle PostgreSQL correspondant au compte Ubuntu doit préalablement exister et être utilisable en connexion locale avec `psql` (voir les étapes manuelles ci-dessous). Le script demande les privilèges `sudo`, et éventuellement le mot de passe de connexion PostgreSQL du propriétaire.
 
 **Sur l'EliteBook déjà configuré :** exécuter le script permet de vérifier et de remettre en place les composants sans repartir de zéro. Il ne remplace pas le mot de passe technique ni la configuration déjà opérationnelle.
