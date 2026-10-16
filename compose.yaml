@@ -16,9 +16,9 @@ services:
       - donnees_postgresql:/var/lib/postgresql
       - ./base-de-donnees/structure.sql:/docker-entrypoint-initdb.d/01-structure.sql:ro
       - ./base-de-donnees/donnees-fictives.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
-      - ./docker/configurer-roles-api.sql:/opt/laboratoire/configurer-roles-api.sql:ro
-      - ./docker/initialiser-api.sh:/opt/laboratoire/initialiser-api.sh:ro
-      - ./base-de-donnees/interface-api.sql:/opt/laboratoire/interface-api.sql:ro
+      # Montage de dossiers : les changements Git restent visibles sans liaison à un ancien fichier.
+      - ./docker:/opt/laboratoire/docker:ro
+      - ./base-de-donnees:/opt/laboratoire/sql:ro
     networks:
       - interne
     healthcheck:
