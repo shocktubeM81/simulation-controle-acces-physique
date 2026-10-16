@@ -92,3 +92,49 @@ Les anciens fichiers `.env.api` et les anciennes bases installées sur l'hôte n
 - La communication sécurisée entre l'ordinateur et le Raspberry Pi **reste à concevoir** avant d'ouvrir l'API au réseau.
 
 Détails : [architecture et sécurité](documentation/securite.md), [Raspberry Pi](documentation/raspberry-pi.md), [interface API](documentation/interface-api.md).
+
+## 5. Synchronisation expérimentale (première version)
+
+Sur **l'ordinateur**, après `git pull --ff-only origin main`, réexécuter :
+
+```bash
+bash scripts/installer-serveur-central.sh
+curl --fail --silent --show-error -X POST \
+  http://127.0.0.1:3000/rpc/exporter_autorisations
+```
+
+La réponse attendue est un document JSON contenant `schema_version`,
+`captured_at`, `personnes`, `portes`, `identifiants` et `autorisations`.
+Ce document contient uniquement les données fictives du laboratoire.
+
+Sur le **Raspberry Pi**, après `git pull --ff-only origin main` :
+
+```bash
+bash scripts/installer-serveur-local.sh
+bash scripts/tester-sqlite-local.sh
+```
+
+Vérifier d'abord que le Raspberry Pi peut établir une connexion **SSH
+authentifiée par clé** vers l'ordinateur. Examiner l'empreinte de la clé
+du serveur lors de la première connexion (ne pas accepter une empreinte
+inconnue sans vérification). La synchronisation fonctionne en mode
+`BatchMode=yes`, **sans saisie interactive de mot de passe SSH**.
+Les clés SSH ne doivent pas être publiées dans GitHub.
+
+```bash
+bash scripts/synchroniser-serveur-local.sh UTILISATEUR@ADRESSE_ORDINATEUR
+sudo docker compose -f compose.local.yaml run --rm cache-sqlite \
+  verifier-sync FICTIF-0001 Laboratoire
+sudo docker compose -f compose.local.yaml run --rm cache-sqlite \
+  verifier-sync FICTIF-0003 Laboratoire
+```
+
+**Sécurité :** le port 3000 central reste attaché à `127.0.0.1`;
+il n'est pas ouvert au réseau du Raspberry Pi. Le Raspberry Pi utilise SSH
+et une commande `curl` exécutée à distance pour obtenir les données.
+Le conteneur SQLite lui-même n'a aucun accès réseau.
+
+**Limites :** prototype manuel, données fictives, pas d'ordonnancement
+automatique des synchronisations, compte SSH distant non restreint et
+politique de révocation à améliorer. Voir
+[politique et sécurité](documentation/politique-synchronisation.md).
