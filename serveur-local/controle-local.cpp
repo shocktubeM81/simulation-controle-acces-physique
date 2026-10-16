@@ -114,7 +114,7 @@ void verifier_acces(const std::string& identifiant, const std::string& porte,
             return;
         }
     }
-    const char* requete = R"SQL(
+    const char* requete = exiger_synchro ? R"SQL(
         SELECT EXISTS (
           SELECT 1 FROM identifiants i
           JOIN personnes p ON p.id_personne = i.id_personne
@@ -124,6 +124,15 @@ void verifier_acces(const std::string& identifiant, const std::string& porte,
             AND i.actif = 1 AND p.actif = 1 AND po.actif = 1
           AND (a.date_debut IS NULL OR datetime(a.date_debut) <= datetime('now'))
           AND (a.date_fin IS NULL OR datetime(a.date_fin) > datetime('now'))
+        )
+    )SQL" : R"SQL(
+        SELECT EXISTS (
+          SELECT 1 FROM identifiants i
+          JOIN personnes p ON p.id_personne = i.id_personne
+          JOIN autorisations a ON a.id_personne = p.id_personne
+          JOIN portes po ON po.nom = a.nom_porte
+          WHERE i.code = ?1 AND po.nom = ?2
+            AND i.actif = 1 AND p.actif = 1 AND po.actif = 1
         )
     )SQL";
     sqlite3_stmt* statement = nullptr;
