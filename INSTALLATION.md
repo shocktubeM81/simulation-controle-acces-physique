@@ -46,8 +46,11 @@ bash scripts/installer-serveur-central.sh
 ```bash
 git clone https://github.com/shocktubeM81/simulation-controle-acces-physique.git
 cd simulation-controle-acces-physique
-docker compose -f compose.local.yaml build
+bash scripts/preparer-raspberry-pi.sh
+bash scripts/installer-serveur-local.sh
 ```
+
+Le premier script installe Docker Engine et Compose depuis le dépôt officiel sur Debian 13 ARM64 si nécessaire; il exige `sudo` et ne modifie pas la configuration SSH. Le second construit l'image de diagnostic. Examiner le script avant de l'exécuter; les autres distributions demandent une adaptation.
 
 Cette première image exécute seulement le client C++ de **diagnostic réseau**; SQLite et la synchronisation des permissions ne sont pas encore intégrés. Le moteur Docker et Compose doivent préalablement être installés sur le Raspberry Pi.
 
@@ -64,7 +67,7 @@ Pour obtenir l'exécutable sur l'ordinateur, installer CMake et un compilateur C
 Depuis le Raspberry Pi :
 
 ```bash
-docker compose -f compose.local.yaml run --rm diagnostic-reseau ADRESSE_IPV4_ORDINATEUR 5050
+sudo docker compose -f compose.local.yaml run --rm diagnostic-reseau ADRESSE_IPV4_ORDINATEUR 5050
 ```
 
 L'adresse est un paramètre de la commande et n'est pas inscrite dans le code.
