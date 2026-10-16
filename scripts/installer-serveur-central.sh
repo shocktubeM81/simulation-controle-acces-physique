@@ -16,6 +16,11 @@ docker compose up -d --wait base-de-donnees
 echo "Configuration des rôles et de l'API..."
 docker compose exec -T -u 0 base-de-donnees sh /opt/laboratoire/docker/initialiser-api.sh
 
+echo "Actualisation du cache de schéma PostgREST..."
+docker compose exec -T -u 0 base-de-donnees \
+  psql -v ON_ERROR_STOP=1 -U postgres -d controle_acces_simulation \
+  -c "NOTIFY pgrst, 'reload schema';"
+
 echo "Démarrage de PostgREST..."
 docker compose up -d interface-api
 
