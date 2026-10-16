@@ -8,5 +8,10 @@ sudo docker compose -f compose.local.yaml build diagnostic-reseau cache-sqlite i
 echo "Images locales construites."
 if [[ -f /etc/controle-acces/synchronisation.conf ]]; then
   echo "Mise a jour des services systemd du projet..."
+  configuration=/etc/controle-acces/synchronisation.conf
+  utilisateur="$(sudo sed -n 's/^SYNC_USER=//p' "$configuration")"
+  cible="$(sudo sed -n 's/^SYNC_TARGET=//p' "$configuration")"
+  [[ -n "$utilisateur" && -n "$cible" ]] || { echo "Configuration systemd incomplete." >&2; exit 1; }
+  sudo bash scripts/installer-timer-raspberry-pi.sh "$utilisateur" "$cible"
   sudo bash scripts/installer-surveillance.sh
 fi
