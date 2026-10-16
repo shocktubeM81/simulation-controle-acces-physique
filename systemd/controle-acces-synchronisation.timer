@@ -1,0 +1,12 @@
+[Unit]
+Description=Execution periodique de la synchronisation des autorisations
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=5min
+AccuracySec=15s
+Persistent=true
+Unit=controle-acces-synchronisation.service
+
+[Install]
+WantedBy=timers.target
