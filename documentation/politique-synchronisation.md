@@ -89,7 +89,7 @@ s'agit d'un laboratoire, pas d'une architecture de production. Pour la suite :
 compte SSH restreint à une commande, autorisation fine par bâtiment, signature
 d'instantanés, numéros de version monotones transactionnels et journal d'audit.
 
-La commande `verifier-sync` du prototype C++ refuse au-delà de 3600 secondes,
+Le cache synchronisé est enregistré dans `autorisations-synchronisees.sqlite3`, distinct du fichier de fixtures `autorisations.sqlite3` ; les tests initiaux ne peuvent donc pas réintroduire des droits révoqués dans le cache synchronisé.\n\nLa commande `verifier-sync` du prototype C++ refuse au-delà de 3600 secondes,
 sans instantané ou si l'horloge recule. La valeur est pour l'instant codée dans
 le prototype en C++ et **doit encore être pilotée à partir du fichier JSON**
 avant de qualifier le paramétrage de centralisé.
