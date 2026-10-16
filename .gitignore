@@ -69,3 +69,7 @@ Testing/
 
 # Configuration et secrets locaux
 .env.api
+
+# Secrets du déploiement Docker (locaux uniquement)
+secrets/
+.env.docker.api
