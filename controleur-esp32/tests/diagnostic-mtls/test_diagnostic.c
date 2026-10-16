@@ -38,7 +38,7 @@ int esp_http_client_set_header(void*h,const char*k,const char*v){
 (void)h;assert(!strcmp(k,"Content-Type")&&!strcmp(v,"application/json"));return ESP_OK;
 }
 int esp_http_client_set_post_field(void*h,const char*d,int n){
-(void)h;assert(n==2&&!memcmp(d,"{}",2));return ESP_OK;
+(void)h;assert(n==(int)strlen(d));return ESP_OK;
 }
 int esp_http_client_perform(void*h){
 (void)h;++calls;
@@ -69,6 +69,19 @@ int main(void){
  char grand[300];memset(grand,'x',sizeof(grand)-1);grand[299]=0;body=grand;assert(!essayer());
  ReponseDiagnostic r={.texte="{\"erreur\":\"EVENEMENT_INVALIDE\"}\0reste",.taille=40};
  assert(!refus_attendu(400,&r));
+ const char *id="a4c71422-e011-4ca7-b140-14310bec83f5";
+ body="{\"statut\":\"ENREGISTRE\",\"id_evenement\":\"a4c71422-e011-4ca7-b140-14310bec83f5\",\"recu_a_utc\":\"2026-10-16T21:13:50.241Z\"}";
+ http=201; assert(mtls_enregistrer(id,"{}"));
+ http=200; assert(!mtls_enregistrer(id,"{}"));
+ body="{\"statut\":\"DEJA_PRESENT\",\"id_evenement\":\"a4c71422-e011-4ca7-b140-14310bec83f5\",\"recu_a_utc\":\"2026-10-16T21:13:50.241Z\"}";
+ assert(mtls_enregistrer(id,"{}"));
+ assert(!mtls_enregistrer("autre-id","{}"));
+ body="{\"statut\":\"DEJA_PRESENT\",\"id_evenement\":\"a4c71422-e011-4ca7-b140-14310bec83f5\",\"recu_a_utc\":\"invalide\"}";
+ assert(!mtls_enregistrer(id,"{}"));
+ body="{\"statut\":\"DEJA_PRESENT\",\"id_evenement\":\"a4c71422-e011-4ca7-b140-14310bec83f5\",\"recu_a_utc\":\"2026-10-16T21:13:50.241Z\",\"extra\":1}";
+ assert(!mtls_enregistrer(id,"{}"));
+ http=403;assert(!mtls_enregistrer(id,"{}"));
+ http=409;assert(!mtls_enregistrer(id,"{}"));
  assert(cleanups==calls);
  puts("OK: TLS configure, requete vide, reponse fragmentee, refus HTTP, JSON, taille, nettoyage, depart differe");
  return 0;

@@ -4,6 +4,7 @@ idf_component_register(
         "reseau.c"
         "horloge.c"
         "diagnostic-mtls.c"
+        "journal-client.c"
         "sortie-manuelle.c"
         "LCD_Driver/Vernon_ST7789T/Vernon_ST7789T.c"
         "LCD_Driver/ST7789.c"

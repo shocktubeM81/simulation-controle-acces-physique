@@ -8,7 +8,7 @@
 #include "LVGL_Driver.h"
 #include "reseau.h"
 #include "horloge.h"
-#include "diagnostic-mtls.h"
+#include "journal-client.h"
 #include "sortie-manuelle.h"
 
 void app_main(void)
@@ -33,21 +33,25 @@ void app_main(void)
 
     sortie_manuelle_initialiser();
     reseau_initialiser();
-    diagnostic_mtls_initialiser();
+    journal_client_initialiser();
     EtatReseau etat_courant = {.texte = "ESP32-C6"};
 
     while (1) {
         bool rafraichir = sortie_manuelle_actualiser();
+        if (rafraichir && sortie_manuelle_active()) {
+            journal_client_ajouter_sortie();
+        }
         EtatReseau nouvel_etat;
         if (reseau_lire_etat(&nouvel_etat)) {
             etat_courant = nouvel_etat;
             rafraichir = true;
         }
         rafraichir = horloge_actualiser(etat_courant.connecte) || rafraichir;
-        diagnostic_mtls_actualiser(
-            etat_courant.connecte && horloge_disponible());
+        rafraichir = journal_client_actualiser(
+            etat_courant.connecte && horloge_disponible()) || rafraichir;
         if (rafraichir) {
-            const bool en_erreur = etat_courant.erreur || horloge_erreur();
+            const bool en_erreur = etat_courant.erreur || horloge_erreur() ||
+                                   journal_client_erreur();
             const bool sortie_active = sortie_manuelle_active();
             /* L'erreur prime sur l'autorisation simulee; le repos reste neutre. */
             const uint32_t fond = en_erreur ? 0xF4A300
@@ -58,8 +62,9 @@ void app_main(void)
             const char *sortie = sortie_active
                 ? "SORTIE AUTORISEE\nDEVERROUILLAGE\nSIMULE"
                 : "PRET\nBOOT: sortie";
-            lv_label_set_text_fmt(label, "%s\n\n%s\n\n%s",
-                                  sortie, etat_courant.texte, horloge_texte());
+            lv_label_set_text_fmt(label, "%s\n\n%s\n\n%s\n\n%s",
+                                  sortie, etat_courant.texte, horloge_texte(),
+                                  journal_client_texte());
             lv_obj_center(label);
         }
         lv_timer_handler();

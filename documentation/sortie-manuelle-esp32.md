@@ -67,3 +67,7 @@ La configuration Wi-Fi locale existante est conservee et reste exclue de Git.
 Le moniteur indique `SORTIE: Demande interieure: deverrouillage SIMULE pendant 5 secondes`, puis `SORTIE: Fin du deverrouillage SIMULE`. Un appui maintenu ne doit pas produire de demandes repetees.
 
 Les essais avec entrees simulees couvrent les rebonds, l'appui maintenu, l'expiration, la prolongation et le bouton maintenu au lancement. Ils ne remplacent pas la validation du bouton physique.
+
+## Journal réseau optionnel
+
+Sur la branche `feature/journal-evenements-securise`, suivre le [guide du journal ESP32](journal-esp32.md) pour transmettre chaque nouvel appui par mTLS. Le programme conserve la simulation locale et ajoute une file RAM bornée; la fin des cinq secondes ne génère pas un nouvel événement. L'activation requiert les fichiers privés de configuration et de certificats. Sans activation, la simulation locale reste disponible.

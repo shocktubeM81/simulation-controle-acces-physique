@@ -68,7 +68,39 @@ static bool refus_attendu(int statut, const ReponseDiagnostic *reponse)
     return correct;
 }
 
-static bool essayer(void)
+static bool accuse_attendu(int statut, const ReponseDiagnostic *reponse,
+                           const char *identifiant)
+{
+    if ((statut != 200 && statut != 201) || reponse->depassement ||
+        reponse->taille == 0 ||
+        memchr(reponse->texte, '\0', reponse->taille) != NULL) {
+        return false;
+    }
+    cJSON *objet = cJSON_ParseWithLengthOpts(
+        reponse->texte, reponse->taille + 1, NULL, true);
+    if (objet == NULL) return false;
+    cJSON *etat = cJSON_GetObjectItemCaseSensitive(objet, "statut");
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(objet, "id_evenement");
+    cJSON *date = cJSON_GetObjectItemCaseSensitive(objet, "recu_a_utc");
+    bool correct = cJSON_IsObject(objet) && cJSON_GetArraySize(objet) == 3 &&
+        cJSON_IsString(etat) && cJSON_IsString(id) && cJSON_IsString(date) &&
+        strcmp(id->valuestring, identifiant) == 0 &&
+        strcmp(etat->valuestring, statut == 201 ? "ENREGISTRE" : "DEJA_PRESENT") == 0 &&
+        strlen(date->valuestring) == 24;
+    if (correct) {
+        const char *d = date->valuestring;
+        for (int i = 0; i < 24; ++i) {
+            char separateur = i == 4 || i == 7 ? '-' : i == 10 ? 'T' :
+                i == 13 || i == 16 ? ':' : i == 19 ? '.' : i == 23 ? 'Z' : 0;
+            if ((separateur && d[i] != separateur) ||
+                (!separateur && (d[i] < '0' || d[i] > '9'))) correct = false;
+        }
+    }
+    cJSON_Delete(objet);
+    return correct;
+}
+
+static bool requete(const char *message, const char *identifiant)
 {
     ReponseDiagnostic reponse = {0};
     const esp_http_client_config_t configuration = {
@@ -93,7 +125,7 @@ static bool essayer(void)
     esp_err_t resultat = esp_http_client_set_header(
         client, "Content-Type", "application/json");
     if (resultat == ESP_OK) {
-        resultat = esp_http_client_set_post_field(client, "{}", 2);
+        resultat = esp_http_client_set_post_field(client, message, strlen(message));
     }
     if (resultat == ESP_OK) {
         resultat = esp_http_client_perform(client);
@@ -101,16 +133,24 @@ static bool essayer(void)
     int statut = esp_http_client_get_status_code(client);
     bool termine = esp_http_client_is_complete_data_received(client);
     bool correct = resultat == ESP_OK && termine &&
-                   refus_attendu(statut, &reponse);
+                   (identifiant == NULL ? refus_attendu(statut, &reponse)
+                                       : accuse_attendu(statut, &reponse, identifiant));
     esp_http_client_cleanup(client);
-    if (correct) {
+    if (correct && identifiant == NULL) {
         ESP_LOGI("MTLS_TEST", "Diagnostic mTLS OK: HTTP 400 EVENEMENT_INVALIDE; aucun evenement cree");
-    } else {
+    } else if (!correct) {
         /* Ne jamais reproduire le corps brut, les certificats ou la cle. */
-        ESP_LOGW("MTLS_TEST", "Diagnostic non valide: transport=%s, HTTP=%d",
+        ESP_LOGW("MTLS_TEST", "Requete non confirmee: transport=%s, HTTP=%d",
                  esp_err_to_name(resultat), statut);
     }
     return correct;
+}
+
+static bool essayer(void) { return requete("{}", NULL); }
+
+bool mtls_enregistrer(const char *identifiant, const char *message)
+{
+    return requete(message, identifiant);
 }
 
 static void tache_diagnostic(void *contexte)
@@ -153,6 +193,8 @@ void diagnostic_mtls_actualiser(bool disponible)
     }
 }
 #else
+bool mtls_enregistrer(const char *identifiant, const char *message)
+{ (void)identifiant; (void)message; return false; }
 void diagnostic_mtls_initialiser(void)
 {
     ESP_LOGI("MTLS_TEST", "Diagnostic desactive: configuration locale absente");
