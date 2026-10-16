@@ -18,5 +18,6 @@ RUN python3 -c 'import sqlite3; print("SQLite Python", sqlite3.sqlite_version)' 
 COPY --from=compilation /code/build/serveur-local /usr/local/bin/serveur-local
 COPY --from=compilation /code/controle-local /usr/local/bin/controle-local
 COPY serveur-local/importer-snapshot.py /usr/local/bin/importer-snapshot.py
+COPY serveur-local/surveiller-cache.py /usr/local/bin/surveiller-cache.py
 USER controle
 ENTRYPOINT ["/usr/local/bin/serveur-local"]
