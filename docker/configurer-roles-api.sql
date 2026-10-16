@@ -19,3 +19,5 @@ GRANT api_anonyme TO api_authentificateur;
 GRANT CONNECT ON DATABASE controle_acces_simulation TO api_authentificateur;
 GRANT SELECT ON TABLE personnes, identifiants, portes, autorisations TO api_proprietaire;
 CREATE SCHEMA IF NOT EXISTS api AUTHORIZATION api_proprietaire;
+-- Corrige aussi un schéma créé par une tentative d'installation antérieure.
+ALTER SCHEMA api OWNER TO api_proprietaire;
