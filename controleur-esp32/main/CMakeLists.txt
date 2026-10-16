@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "reseau.c"
+        "horloge.c"
         "sortie-manuelle.c"
         "LCD_Driver/Vernon_ST7789T/Vernon_ST7789T.c"
         "LCD_Driver/ST7789.c"
@@ -19,3 +20,4 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/configuration-wifi.locale.h")
 else()
     target_compile_definitions(${COMPONENT_LIB} PRIVATE WIFI_LOCAL_PRESENT=0)
 endif()
+

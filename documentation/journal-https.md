@@ -17,8 +17,8 @@ Configuration de référence :
 
 Les paquets suivent les mises à jour Debian; relever leurs versions et
 l'identifiant d'image pour reproduire un déploiement. Les tests de préparation
-passent avec Python 3.12.14, aiohttp 3.11.16 et 3.14.5. La construction ARM64 et
-l'exécution de ces nouveaux tests sur le Pi doivent être validées avant démarrage.
+passent avec Python 3.12.14, aiohttp 3.11.16 et 3.14.5. La construction ARM64 et les 29 tests sont également validés sur le Pi avec
+Python 3.13. Pour reproduire le déploiement, exécuter ces tests avant démarrage.
 
 ## 1. Construire et tester sur le Pi
 
@@ -227,8 +227,9 @@ cela ne prouve pas encore un envoi par le matériel ESP32.
   les contrôleurs. Le renouvellement des certificats reste manuel.
 - La base et ses sauvegardes restent non chiffrées au repos. Ne pas introduire
   d'identités réelles avant les politiques d'accès, de rétention et de restauration.
-- Restent à implémenter côté ESP32 : horloge après mise sous tension, validation
-  du certificat serveur, envoi mTLS, file d'attente et retransmissions.
+- La [synchronisation SNTP ESP32](heure-esp32.md) est ajoutée mais reste à valider
+  sur la carte après mise sous tension. Restent à implémenter : validation du
+  certificat serveur, envoi mTLS, file d'attente et retransmissions.
 
 Références : [Python SSL](https://docs.python.org/3.13/library/ssl.html),
 [aiohttp serveur](https://docs.aiohttp.org/en/stable/web_reference.html),

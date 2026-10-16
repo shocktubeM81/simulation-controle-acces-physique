@@ -7,6 +7,7 @@
 #include "ST7789.h"
 #include "LVGL_Driver.h"
 #include "reseau.h"
+#include "horloge.h"
 #include "sortie-manuelle.h"
 
 void app_main(void)
@@ -37,21 +38,25 @@ void app_main(void)
             etat_courant = nouvel_etat;
             rafraichir = true;
         }
+        rafraichir = horloge_actualiser(etat_courant.connecte) || rafraichir;
         if (rafraichir) {
+            const bool en_erreur = etat_courant.erreur || horloge_erreur();
             const bool sortie_active = sortie_manuelle_active();
             /* L'erreur prime sur l'autorisation simulee; le repos reste neutre. */
-            const uint32_t fond = etat_courant.erreur ? 0xF4A300
+            const uint32_t fond = en_erreur ? 0xF4A300
                 : (sortie_active ? 0x006B32 : 0x102030);
             lv_obj_set_style_bg_color(screen, lv_color_hex(fond), 0);
             lv_obj_set_style_text_color(
-                label, lv_color_hex(etat_courant.erreur ? 0x101010 : 0xFFFFFF), 0);
+                label, lv_color_hex(en_erreur ? 0x101010 : 0xFFFFFF), 0);
             const char *sortie = sortie_active
                 ? "SORTIE AUTORISEE\nDEVERROUILLAGE\nSIMULE"
                 : "PRET\nBOOT: sortie";
-            lv_label_set_text_fmt(label, "%s\n\n%s", sortie, etat_courant.texte);
+            lv_label_set_text_fmt(label, "%s\n\n%s\n\n%s",
+                                  sortie, etat_courant.texte, horloge_texte());
             lv_obj_center(label);
         }
         lv_timer_handler();
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
+
