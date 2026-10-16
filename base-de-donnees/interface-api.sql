@@ -1,11 +1,10 @@
--- À exécuter avec le rôle propriétaire des tables (david sur l'EliteBook).
+-- Fonction API : création sous un rôle applicatif restreint.
 -- Seule la fonction de décision est exposée par PostgREST.
 BEGIN;
 
 -- Le script s'exécute pendant l'initialisation PostgreSQL, comme superutilisateur.
 -- La fonction SECURITY DEFINER appartient au rôle applicatif limité.
 SET LOCAL ROLE api_proprietaire;
-CREATE SCHEMA IF NOT EXISTS api;
 REVOKE ALL ON SCHEMA api FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION api.verifier_acces(
