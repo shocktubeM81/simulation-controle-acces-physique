@@ -1,6 +1,8 @@
 # Contrôleur de secteur ESP32 — conception initiale
 
-**Statut : spécification de travail, interface non encore implémentée.**
+**Statut : test matériel LCD validé; interface réseau et fonctions de contrôle d’accès non encore implémentées.**
+
+Le programme `controleur-esp32/` affiche un message autonome sur le LCD. Voir le [guide d’installation et du premier test LCD](installation-esp32.md) pour la configuration matérielle, les versions et la procédure de validation.
 
 ## Objectif
 
@@ -76,6 +78,10 @@ L'alternative de décision est `REFUSE`. Une erreur de transport, une réponse i
 - Commenter les **invariants et choix de conception**, non les opérations évidentes.
 - Conserver les cinq scripts Shell actuels : les tests du futur service seront intégrés à `scripts/verifier.sh`.
 
-## Point restant à préciser
+## Matériel de référence
 
-Le modèle exact de la carte ESP32 et les GPIO disponibles détermineront l'environnement de compilation et les périphériques de démonstration. Ne pas choisir les broches avant d'avoir identifié la carte.
+La carte testée est une Waveshare ESP32-C6-LCD-1.47 non tactile, équipée d’un ESP32-C6FH8 avec 8 Mo de flash.
+
+Le LCD utilise GPIO6/7 pour le SPI, GPIO14/15 pour CS/DC et GPIO21/22 pour RESET et le rétroéclairage. Le lecteur microSD partage le bus SPI et utilise GPIO4 pour CS et GPIO5 pour MISO. La LED RGB utilise GPIO8.
+
+Le test LCD est validé. Les autres périphériques et les communications réseau doivent être testés séparément avant leur intégration.
