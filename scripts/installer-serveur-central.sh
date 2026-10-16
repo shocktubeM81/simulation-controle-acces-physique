@@ -19,15 +19,18 @@ docker compose exec -T -u 0 base-de-donnees sh /opt/laboratoire/docker/initialis
 echo "Démarrage de PostgREST..."
 docker compose up -d interface-api
 
-echo "Vérification..."
-for tentative in $(seq 1 30); do
+echo "Vérification de l’API sur 127.0.0.1:3000..."
+for tentative in $(seq 1 10); do
     if bash scripts/verifier-installation.sh >/dev/null 2>&1; then
         bash scripts/verifier-installation.sh
         echo "Serveur central prêt."
         exit 0
     fi
+    echo "Tentative $tentative/10 : API pas encore validée."
     sleep 2
 done
 docker compose ps
-echo "Échec : consulter docker compose logs --tail=60" >&2
+echo "Échec de la vérification. Détails :" >&2
+bash scripts/verifier-installation.sh || true
+docker compose logs --tail=30 interface-api || true
 exit 1
