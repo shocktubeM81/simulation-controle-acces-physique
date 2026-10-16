@@ -1,144 +1,127 @@
-# Installation reproductible
+# Installation de la simulation de contrôle d'accès
 
-Cette procédure déploie **une simulation pédagogique** sur deux machines Linux. Toutes les données d'identifiants et de portes sont fictives. Aucun contrôleur de porte réel n'est requis à cette étape.
+Ce laboratoire utilise un **ordinateur Linux** (serveur central) et un **Raspberry Pi 4** (serveur local). Les données sont fictives; le prototype ne doit pas commander une porte réelle.
 
-## 1. Matériel et logiciels
+## Exigences
 
-| Équipement | Minimum pour suivre la procédure validée | Logiciels |
+| Machine | Matériel | Logiciels |
 |---|---|---|
-| Ordinateur (serveur central) | Ordinateur Linux, accès réseau, espace disque disponible pour Docker | Ubuntu ou Debian, Docker Engine et Compose, Git, OpenSSL, curl, OpenSSH Server |
-| Raspberry Pi (serveur local) | Raspberry Pi 4 testé, alimentation stable, stockage compatible, réseau joignant l'ordinateur | Debian 13 **ARM64** (trixie), Git, OpenSSH Client; Docker et Compose installés par le script |
-| Contrôleur de porte | **Non nécessaire actuellement** | ESP32 prévu dans une phase ultérieure |
+| Ordinateur central | Ordinateur Linux, stockage pour Docker, connexion réseau | Ubuntu/Debian, Git, Docker Engine + Compose, OpenSSL, curl, OpenSSH Server, `ss` |
+| Raspberry Pi | Raspberry Pi 4, alimentation stable, stockage, réseau IP | Debian 13 ARM64 (trixie), Git, OpenSSH Client, Python 3, sudo; Docker installé par le script |
+| Contrôleur | Aucun pour cette phase | ESP32 prévu ultérieurement |
 
-**Recommandé pour les essais :** liaison Ethernet et au moins 16 Go de stockage libre sur le Raspberry Pi. Ces valeurs sont des recommandations pratiques, **pas des exigences minimales mesurées**. Les deux machines doivent avoir une heure synchronisée; l'import refuse les instantanés décalés de plus de 60 s.
+Les deux machines doivent avoir une heure synchronisée et le Raspberry Pi doit pouvoir se connecter au **port SSH** du central. Le port de PostgREST (3000) reste accessible exclusivement sur `127.0.0.1` du central.
 
-Prérequis réseau : le Raspberry Pi doit pouvoir joindre le **port SSH** de l'ordinateur central. PostgreSQL n'est pas exposé au réseau et PostgREST reste accessible uniquement par `127.0.0.1:3000` sur l'ordinateur. Aucune redirection Internet de ports n'est requise.
+## 1. Installer le serveur central
 
-Les exemples utilisent `IP_ORDINATEUR` et `UTILISATEUR_ORDINATEUR` comme paramètres **à remplacer**, et non comme noms à saisir littéralement.
-
-## 2. Ordinateur — initialiser le serveur central
-
-Avec Docker Engine et Docker Compose déjà installés :
+Prérequis : Docker Engine et Docker Compose disponibles pour l'utilisateur de connexion.
 
 ```bash
 git clone https://github.com/shocktubeM81/simulation-controle-acces-physique.git
 cd simulation-controle-acces-physique
-bash scripts/installer-serveur-central.sh
-bash scripts/verifier-installation.sh
+bash scripts/installer-central.sh
+bash scripts/verifier.sh central
 ```
 
-Le script crée les secrets localement (exclus de Git), initialise PostgreSQL et les données fictives, puis démarre PostgREST. Il est relançable sans effacer volontairement les volumes.
+Le script prépare les secrets localement, sans les publier, puis lance PostgreSQL et PostgREST.
 
-Le service SSH de l'ordinateur central doit être opérationnel avant l'étape 4. Ne pas ouvrir le port 3000 au réseau.
-
-## 3. Raspberry Pi — préparer et construire
+## 2. Préparer le Raspberry Pi
 
 ```bash
 git clone https://github.com/shocktubeM81/simulation-controle-acces-physique.git
 cd simulation-controle-acces-physique
-bash scripts/preparer-raspberry-pi.sh
-bash scripts/installer-serveur-local.sh
-bash scripts/preparer-cle-synchronisation.sh
+bash scripts/installer-pi.sh
 ```
 
-Le premier script prépare Docker Engine et Compose sur Debian 13 ARM64; le deuxième compile le C++ et les outils Python dans Docker. À la première installation, les minuteurs ne sont pas activés tant que l'identité SSH n'est pas validée. La clé privée de synchronisation **reste sur le Raspberry Pi**.
+Le script installe Docker et Compose si nécessaires sur Debian 13 ARM64, construit les images et crée une paire SSH dédiée si elle est absente. Les clés déjà présentes ne sont pas remplacées.
 
-## 4. Autoriser une seule commande d'export SSH
+## 3. Autoriser l'export SSH
 
-**Sur le Raspberry Pi**, copier uniquement la clé **publique**. Remplacer les valeurs en majuscules par celles de l'ordinateur :
+**Sur le Pi**, remplacer `COMPTE_CENTRAL` et `IP_CENTRAL` par les valeurs de l'ordinateur :
 
 ```bash
-scp ~/.ssh/id_ed25519_controle_sync.pub \
-  UTILISATEUR_ORDINATEUR@IP_ORDINATEUR:~/controle-sync.pub
+scp ~/.ssh/id_ed25519_controle_sync.pub COMPTE_CENTRAL@IP_CENTRAL:~/controle-sync.pub
 ```
 
 **Sur l'ordinateur central**, depuis le dépôt :
 
 ```bash
-sudo bash scripts/installer-acces-export-central.sh ~/controle-sync.pub
+sudo bash scripts/installer-central.sh export ~/controle-sync.pub
 ```
 
-Ce script crée ou vérifie `controle-export`, avec la clé SSH restreinte à la commande d'export. Il n'ouvre pas d'accès général au compte personnel.
+Cette commande crée `controle-export`, limité à l'export des autorisations fictives. Le mot de passe de connexion ne donne pas accès à ce compte.
 
-**Sur le Raspberry Pi**, vérifier la clé de l'hôte SSH lors de la première connexion, puis tester :
+**Sur le Pi**, vérifier l'empreinte de l'hôte distant, puis tester :
 
 ```bash
 ssh -T -o BatchMode=yes -o IdentitiesOnly=yes \
   -i ~/.ssh/id_ed25519_controle_sync \
-  controle-export@IP_ORDINATEUR exporter-autorisations
+  controle-export@IP_CENTRAL exporter-autorisations
 ```
 
-La réponse attendue est un JSON fictif incluant `schema_version`, `captured_at`, `personnes`, `identifiants`, `portes` et `autorisations`.
+La réponse attendue est un document JSON fictif, avec `schema_version` égal à 1.
 
-## 5. Activer la synchronisation et la surveillance
+## 4. Activer le fonctionnement périodique
 
-**Sur le Raspberry Pi**, depuis le dépôt :
+**Sur le Pi** :
 
 ```bash
-sudo bash scripts/installer-timer-raspberry-pi.sh \
-  "$(id -un)" controle-export@IP_ORDINATEUR
+sudo bash scripts/installer-pi.sh configurer "$(id -un)" controle-export@IP_CENTRAL
 sudo systemctl start controle-acces-synchronisation.service
 sudo systemctl status controle-acces-synchronisation.service --no-pager
 ```
 
-Si le service a terminé avec succès, activer les deux minuteurs :
+**Seulement après la réussite de cette première synchronisation**, activer les minuteurs :
 
 ```bash
 sudo systemctl enable --now controle-acces-synchronisation.timer
-sudo bash scripts/installer-surveillance.sh
+sudo systemctl enable --now controle-acces-surveillance.timer
+bash scripts/verifier.sh pi
 ```
 
-Les durées du laboratoire sont environ **5 minutes entre les synchronisations** et **1 minute entre les vérifications de surveillance**. Un échec SSH ne doit jamais rafraîchir artificiellement l'horodatage SQLite.
+La synchronisation est planifiée environ toutes les 5 minutes; la surveillance s'exécute environ toutes les minutes. Les seuils simulés sont documentés dans `documentation/politique-synchronisation.md`.
 
-## 6. Valider la chaîne
+## 5. Mettre à jour une installation existante
 
-**Sur le Raspberry Pi** :
-
-```bash
-bash scripts/tester-surveillance-cache.sh
-bash scripts/verifier-serveur-local.sh
-```
-
-Le dernier test vérifie le cache synchronisé récent, `FICTIF-0001` autorisé à `Laboratoire`, `FICTIF-0003` refusé et les deux minuteurs actifs. Il est **non destructif**.
-
-Pour voir les journaux :
-
-```bash
-sudo journalctl -u controle-acces-synchronisation.service \
-  -u controle-acces-surveillance.service -n 30 --no-pager
-```
-
-## 7. Mises à jour ultérieures
-
-**Sur chaque machine concernée** : se placer dans son clone du dépôt et lancer :
+Depuis le dépôt correspondant, sur chaque machine :
 
 ```bash
 git pull --ff-only origin main
 ```
 
-**Sur l'ordinateur central**, si du code serveur a changé :
+Puis, sur le central : `bash scripts/installer-central.sh`.
+
+Sur le Raspberry Pi :
 
 ```bash
-bash scripts/installer-serveur-central.sh
+bash scripts/installer-pi.sh
+bash scripts/verifier.sh pi
 ```
 
-**Sur le Raspberry Pi**, la mise à jour habituelle est :
+L'installateur réutilise la configuration SSH existante, met à jour les unités `systemd` et conserve les volumes SQLite. Pour tester une **branche**, sélectionner cette branche avec Git au lieu de tirer `main`.
+
+## 6. Diagnostics facultatifs
+
+Sur le Pi :
 
 ```bash
-bash scripts/installer-serveur-local.sh
-bash scripts/verifier-serveur-local.sh
+bash scripts/verifier.sh seuils
+bash scripts/verifier.sh cache-statique
 ```
 
-Si l'identité SSH et la configuration systemd existent déjà, l'installateur local reconstruit l'image, vérifie la liaison SSH et réinstalle les deux unités de service. Il ne supprime pas les volumes.
+Pour le banc d'essai TCP historique, démarrer le serveur C++ de diagnostic sur l'ordinateur, puis lancer sur le Pi :
 
-**Ne pas utiliser `docker compose down --volumes` dans une mise à jour :** cette commande efface les données persistantes du projet.
+```bash
+bash scripts/verifier.sh reseau IP_CENTRAL 5050
+```
 
-## 8. Diagnostics et limites
+Le cache statique et le test TCP sont indépendants des décisions du cache synchronisé.
 
-- `bash scripts/tester-sqlite-local.sh` : test autonome du **cache statique**, distinct du cache synchronisé.
-- `bash scripts/tester-reseau.sh IP_ORDINATEUR` : essai TCP C++ **non chiffré et non authentifié**, pour le laboratoire uniquement (serveur TCP de diagnostic à lancer préalablement sur l'ordinateur).
-- `bash scripts/synchroniser-serveur-local.sh controle-export@IP_ORDINATEUR ~/.ssh/id_ed25519_controle_sync` : synchronisation manuelle de dépannage.
+## Sécurité et limites
 
-Ce prototype n'est **pas adapté à une installation de sûreté réelle**. Les services `systemd` lancent Docker avec les droits root depuis un dépôt modifiable par l'utilisateur; la politique des portes sensibles, les alertes externes et l'intégration du futur ESP32 restent à développer.
+- Ne jamais publier `secrets/`, `.env.docker.api` ou les clés privées.
+- Ne jamais utiliser `docker compose down --volumes` pour une mise à jour ordinaire : cela supprime les données persistantes.
+- Les services `systemd` appellent Docker avec les droits root depuis un dépôt modifiable par l'utilisateur : **prototype académique uniquement**.
+- Le Wi-Fi/Ethernet vers un futur ESP32 n'est pas encore implémenté.
 
-Pour comprendre le code, consulter [les conventions C++](documentation/conventions-code.md), [la sécurité](documentation/securite.md) et [la politique de synchronisation](documentation/politique-synchronisation.md).
+Voir `documentation/conventions-code.md` pour l'organisation des programmes C++ et les critères de commentaires.
