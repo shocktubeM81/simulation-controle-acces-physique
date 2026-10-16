@@ -98,7 +98,8 @@ void verifier_acces(const std::string& identifiant, const std::string& porte,
             -1, &horodatage, nullptr);
         if (prep != SQLITE_OK) {
             if (horodatage) sqlite3_finalize(horodatage);
-            std::cout << "REFUSE : aucune synchronisation validée\\n";
+            std::cout << "REFUSE\\n";
+            std::cerr << "Aucune synchronisation validée\\n";
             return;
         }
         const int result = sqlite3_step(horodatage);
@@ -108,7 +109,8 @@ void verifier_acces(const std::string& identifiant, const std::string& porte,
         const long long maintenant = static_cast<long long>(std::time(nullptr));
         // Profil standard, valeur documentée dans politique-synchronisation.json.
         if (dernier < 0 || maintenant < dernier || maintenant - dernier > 3600) {
-            std::cout << "REFUSE : cache absent, expiré ou horloge incohérente\\n";
+            std::cout << "REFUSE\\n";
+            std::cerr << "Cache absent, expiré ou horloge incohérente\\n";
             return;
         }
     }
