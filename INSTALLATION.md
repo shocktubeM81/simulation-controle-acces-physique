@@ -125,3 +125,32 @@ Le cache statique et le test TCP sont indépendants des décisions du cache sync
 - Le Wi-Fi/Ethernet vers un futur ESP32 n'est pas encore implémenté.
 
 Voir `documentation/conventions-code.md` pour l'organisation des programmes C++ et les critères de commentaires.
+
+## 7. Essayer la branche de refonte et revenir en arrière
+
+La branche de développement n'affecte pas `main`. Sur le **Raspberry Pi**, vérifier d'abord que `git status --short` n'affiche aucune modification locale non enregistrée :
+
+```bash
+git fetch origin
+git switch -c refactor/consolidation-scripts --track origin/refactor/consolidation-scripts
+bash scripts/installer-pi.sh
+sudo systemctl start controle-acces-synchronisation.service
+bash scripts/verifier.sh pi
+bash scripts/verifier.sh seuils
+```
+
+Si la branche est déjà présente localement, utiliser simplement `git switch refactor/consolidation-scripts` et `git pull --ff-only`.
+
+**Retour à la version précédente sur le Raspberry Pi :**
+
+```bash
+git switch main
+git pull --ff-only origin main
+bash scripts/installer-serveur-local.sh
+sudo systemctl start controle-acces-synchronisation.service
+bash scripts/verifier-serveur-local.sh
+```
+
+La réinstallation de `main` remet les anciens points d'entrée `systemd` en place. Les volumes SQLite et la clé SSH restreinte sont conservés dans les deux sens. Si une opération échoue, consulter le journal de l'unité concernée avant de poursuivre.
+
+La compilation GitHub Actions teste la syntaxe des scripts, Docker Compose et le C++20, mais ne remplace pas une validation du service SSH, des volumes et des minuteurs **sur les machines réelles**.
