@@ -99,3 +99,38 @@ les alertes ni les profils distincts pour portes sensibles. Les dates
 individuelles `date_debut` et `date_fin` sont maintenant vérifiées en mode
 synchronisé. Les autorisations fixes du mode de test `verifier` demeurent
 séparées des autorisations validées via `verifier-sync`.
+
+## Automatisation avec systemd et clé restreinte (octobre 2026)
+
+Ce laboratoire fournit :
+- `scripts/preparer-cle-synchronisation.sh` : une **nouvelle** clé SSH sans
+  phrase secrète, pour le service seulement; les permissions locales doivent
+  rester strictes et la clé ne doit jamais être publiée.
+- `scripts/installer-acces-export-central.sh` : sur l'ordinateur,
+  compte `controle-export` et `authorized_keys` avec `restrict,command=...`.
+  OpenSSH interdit alors shell interactif, forwarding et commandes arbitraires
+  **pour cette clé**. Le compte ne doit pas recevoir d'autres clés.
+- `scripts/installer-timer-raspberry-pi.sh` : installe les unités sans les
+  activer; une synchronisation valide est obligatoire avant activation.
+- `systemd/controle-acces-synchronisation.timer` : lancement après démarrage
+  puis cinq minutes après la fin du cycle précédent. Il ne garantit pas une
+  heure civile exacte ni une révocation en cinq minutes en cas de panne.
+- `systemd/controle-acces-synchronisation.service` : journal via
+  `journalctl -u controle-acces-synchronisation.service`.
+
+Le service est lancé par le gestionnaire systemd avec privilèges root pour
+accéder à Docker, alors que la commande SSH est exécutée comme utilisateur
+non privilégié. **Limite du prototype :** le dépôt Compose est modifiable
+par son propriétaire; un service root lançant Docker à partir de ce dépôt
+n'est pas adapté à une installation de production. Pour la production,
+installer un manifeste Compose vérifié, immuable et administré par root, ou
+utiliser Docker rootless avec une politique d'autorisations adaptée.
+
+La commande SSH forcée ne confère pas à elle seule une autorisation au niveau
+des données : l'API d'export reste anonyme sur boucle locale et retourne
+toutes les autorisations fictives. Une politique par bâtiment est requise
+pour les données réelles.
+
+**La clé temporaire `id_ed25519_controle_acces` déjà autorisée sur le compte
+personnel doit être retirée manuellement de son `authorized_keys`, mais
+seulement après validation de la nouvelle identité restreinte.**
