@@ -30,7 +30,12 @@ install -o root -g root -m 0644 systemd/controle-acces-synchronisation.service \
 install -o root -g root -m 0644 systemd/controle-acces-synchronisation.timer \
   /etc/systemd/system/controle-acces-synchronisation.timer
 systemctl daemon-reload
-echo "Unités installées, mais timer NON activé."
-echo "Tester : sudo systemctl start controle-acces-synchronisation.service"
-echo "Puis : sudo systemctl status controle-acces-synchronisation.service"
-echo "Après validation : sudo systemctl enable --now controle-acces-synchronisation.timer"
+# Reinstaller les fichiers unitaires ne modifie pas l'etat d'un timer existant.
+if systemctl is-active --quiet controle-acces-synchronisation.timer; then
+  echo "Unites mises a jour : le minuteur de synchronisation reste actif."
+else
+  echo "Unites installees : minuteur inactif (activation volontairement manuelle)."
+  echo "Tester : sudo systemctl start controle-acces-synchronisation.service"
+  echo "Verifier : sudo systemctl status controle-acces-synchronisation.service"
+  echo "Apres validation : sudo systemctl enable --now controle-acces-synchronisation.timer"
+fi
