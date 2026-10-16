@@ -204,3 +204,39 @@ les fichiers Compose depuis un dépôt modifiable par l'utilisateur. Ce modèle
 ne convient pas à une production sans durcissement. Les valeurs temporelles
 sont des hypothèses de simulation; voir
 [politique de synchronisation](documentation/politique-synchronisation.md).
+
+## 7. Surveillance automatique de la fraîcheur du cache
+
+Sur un Raspberry Pi où le minuteur de synchronisation a déjà été validé
+et activé :
+
+```bash
+git pull --ff-only origin main
+bash scripts/installer-serveur-local.sh
+bash scripts/tester-surveillance-cache.sh
+```
+
+Le script d'installation détecte automatiquement la configuration systemd
+existante, installe le moniteur et active son minuteur **si** celui de
+synchronisation est actif. La surveillance a lieu chaque minute. Aucun
+redémarrage de Docker ni suppression du volume SQLite n'est nécessaire.
+
+```bash
+systemctl status controle-acces-surveillance.timer --no-pager
+sudo journalctl -u controle-acces-surveillance.service -n 20 --no-pager
+```
+
+États affichés : `CACHE_NORMAL` (cache de moins de 15 minutes),
+`CACHE_RETARD` (15 à 60 minutes) et `CACHE_EXPIRE` (60 minutes
+ou absence de synchronisation). Il s'agit de **messages dans les journaux
+locaux**, pas encore d'alertes envoyées sur un autre appareil.
+
+Pour une nouvelle installation, valider et activer d'abord le minuteur de
+synchronisation (section 6), puis lancer :
+
+```bash
+sudo bash scripts/installer-surveillance.sh
+```
+
+Voir [politique de synchronisation](documentation/politique-synchronisation.md)
+pour les seuils, la simulation de panne sans coupure Ethernet et les limites.
