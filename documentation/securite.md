@@ -49,3 +49,9 @@ Le [journal d'événements](journal-evenements.md) utilise une base SQLite et un
 Le transport du contrôleur n'est pas encore implémenté. Il devra chiffrer les échanges, authentifier chaque équipement et vérifier ses droits sur les portes. Aucun accès distant au journal ne doit être ajouté via le TCP ou le HTTP de diagnostic existants.
 
 La base n'est pas chiffrée au repos ni protégée contre un administrateur de l'hôte. L'accès de consultation, la rétention, les sauvegardes et la protection des futurs identifiants doivent être définis avant d'utiliser des données personnelles réelles. Une demande manuelle ne constitue pas une preuve de passage ou d'identité.
+
+## Préparation du transport mTLS
+
+L'[outil de préparation des certificats](certificats-journal.md) sépare les identités serveur et contrôleur, chiffre la clé d'autorité et prépare une liste d'empreintes et de portes autorisées. La clé d'autorité reste sur l'EliteBook et n'est pas déployée au Pi.
+
+Cette préparation n'authentifie pas encore des événements réseau : le service HTTPS et le client ESP32 restent à implémenter. Le contrôle de validité des certificats, les droits par porte, la révocation et le renouvellement devront être testés avant de considérer le transport comme opérationnel.

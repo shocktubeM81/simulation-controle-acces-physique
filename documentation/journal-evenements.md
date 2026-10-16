@@ -2,7 +2,7 @@
 
 ## Portée et état
 
-Cette première étape fournit un journal SQLite local et des tests reproductibles. Les 14 tests du module passent avec Python 3.12.14 et SQLite 3.53.1 sur le poste de préparation; la construction Docker ARM64 et l'exécution sur le Raspberry Pi restent à valider.
+Cette première étape fournit un journal SQLite local et des tests reproductibles. Les 14 tests du module passent avec Python 3.12.14 et SQLite 3.53.1 sur le poste de préparation; la construction Docker ARM64, les 14 tests sur le Pi, la persistance entre conteneurs et le dédoublonnage ont également été validés sur le banc.
 
 Le bouton BOOT n'envoie pas encore d'événement. Aucun serveur HTTP, port d'écoute ou accès direct ESP32 vers SQLite n'est ajouté. Le conteneur de journal s'exécute avec `network_mode: none`.
 
@@ -119,6 +119,8 @@ Pour `journal-evenements`, vérifier `network_mode: none`, l'absence de ports pu
 
 ## 5. Étape suivante : transport authentifié
 
+La [préparation des certificats](certificats-journal.md) est disponible. Elle n'ouvre pas de service et ne relie pas encore le bouton BOOT au journal.
+
 Avant tout envoi depuis l'ESP32 :
 
 1. Ajouter un canal TLS avec vérification du serveur et authentification propre à chaque contrôleur.
@@ -129,3 +131,26 @@ Avant tout envoi depuis l'ESP32 :
 6. Définir séparément les futurs événements d'identification, de décision et de passage; n'enregistrer que les données nécessaires, avec accès restreint et durée de conservation explicite.
 
 Le Wi-Fi masqué et son mot de passe ne remplacent pas cette authentification applicative. Le TCP de diagnostic historique et l'API expérimentale non authentifiée ne seront pas utilisés comme transport du journal.
+
+## Limite mémoire sur le Raspberry Pi
+
+Si Docker affiche `MemoryLimit=false`, vérifier les contrôleurs :
+
+```bash
+cat /sys/fs/cgroup/cgroup.controllers
+sudo docker info --format 'MemoryLimit={{.MemoryLimit}}'
+```
+
+Sur le banc Raspberry Pi avec cgroups v2, `cgroup_disable=memory` était ajouté par les valeurs de démarrage du système, sans figurer dans `/boot/firmware/cmdline.txt`. L'activation validée a consisté à sauvegarder ce fichier, puis à ajouter `cgroup_enable=memory` à la fin de son unique ligne et à redémarrer. Conserver tous les autres paramètres. Ne pas appliquer cette modification aveuglément sur un autre système.
+
+Après redémarrage, `memory` doit figurer dans les contrôleurs et Docker doit afficher `MemoryLimit=true`. Les 14 tests doivent passer sans avertissement mémoire. Le point d'accès du banc doit être réactivé manuellement si nécessaire.
+
+Vérifier la limite effective du nouveau conteneur :
+
+```bash
+sudo docker compose -f compose.local.yaml run --rm -T --entrypoint cat journal-evenements /sys/fs/cgroup/memory.max
+```
+
+Valeur attendue : `134217728` octets (128 Mio).
+
+Référence : [explication du mainteneur Raspberry Pi](https://github.com/raspberrypi/linux/issues/6980).
