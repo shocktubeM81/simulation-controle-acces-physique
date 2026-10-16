@@ -12,3 +12,21 @@ services:
     security_opt:
       - no-new-privileges:true
     network_mode: bridge
+
+  cache-sqlite:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.local
+    image: controle-acces-local-diagnostic-reseau:latest
+    profiles: ["sqlite"]
+    entrypoint: ["/usr/local/bin/controle-local"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    volumes:
+      - donnees_locales:/donnees
+
+volumes:
+  donnees_locales:
