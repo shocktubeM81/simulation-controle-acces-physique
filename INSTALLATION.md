@@ -52,7 +52,13 @@ bash scripts/installer-serveur-local.sh
 
 Le premier script installe Docker Engine et Compose depuis le dépôt officiel sur Debian 13 ARM64 si nécessaire; il exige `sudo` et ne modifie pas la configuration SSH. Le second construit l'image de diagnostic. Examiner le script avant de l'exécuter; les autres distributions demandent une adaptation.
 
-Cette première image exécute seulement le client C++ de **diagnostic réseau**; SQLite et la synchronisation des permissions ne sont pas encore intégrés. Le moteur Docker et Compose doivent préalablement être installés sur le Raspberry Pi.
+Cette image contient le client C++ de diagnostic réseau et un premier prototype autonome de cache SQLite (autorisations fictives et statiques). Pour vérifier les décisions et la persistance du volume entre conteneurs :
+
+```bash
+bash scripts/tester-sqlite-local.sh
+```
+
+La **synchronisation** des permissions, leur expiration et la communication authentifiée avec le serveur central restent à développer. Le moteur Docker et Compose doivent préalablement être installés sur le Raspberry Pi.
 
 ## 3. Essai réseau (facultatif)
 
