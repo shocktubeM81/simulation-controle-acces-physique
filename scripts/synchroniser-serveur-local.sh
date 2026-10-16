@@ -1,18 +1,32 @@
 #!/usr/bin/env bash
-# Un instantané fictif par SSH authentifié : aucune ouverture du port 3000 sur le LAN.
+# Transfert SSH authentifié; un échec ne doit jamais rafraîchir le cache SQLite.
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-
-if [[ $# -ne 1 ]]; then
-    echo "Usage : bash scripts/synchroniser-serveur-local.sh UTILISATEUR@ORDINATEUR" >&2
-    exit 2
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage : bash $0 COMPTE@SERVEUR [FICHIER_CLE_PRIVEE]" >&2
+  exit 2
 fi
-for outil in ssh sudo docker; do
-    command -v "$outil" >/dev/null || { echo "Commande absente : $outil" >&2; exit 1; }
+cible="$1"
+cle="${2:-}"
+for outil in ssh docker mktemp; do
+  command -v "$outil" >/dev/null || { echo "Commande absente : $outil" >&2; exit 1; }
 done
-
-# Aucun secret SSH n'est monté dans le conteneur; ssh fonctionne sur l'hôte.
-# StrictHostKeyChecking=yes impose une clé d'hôte déjà vérifiée dans known_hosts.
-ssh -T -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=5 "$1" \
-    'curl --fail --silent --show-error --max-time 5 --request POST http://127.0.0.1:3000/rpc/exporter_autorisations' \
-    | sudo docker compose -f compose.local.yaml run --rm -T importer-sqlite
+# Une copie temporaire ne sera transmise à SQLite que si SSH a réussi.
+umask 077
+temporaire="$(mktemp)"
+trap 'rm -f "$temporaire"' EXIT
+options=(-T -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=5)
+if [[ -n "$cle" ]]; then
+  options+=(-i "$cle" -o IdentitiesOnly=yes)
+fi
+ssh "${options[@]}" "$cible" exporter-autorisations > "$temporaire"
+# L'export JSON est limité et vérifié à l'importation.
+if [[ ! -s "$temporaire" ]]; then
+  echo "Export vide : importation annulée." >&2
+  exit 1
+fi
+if [[ "$EUID" == 0 ]]; then
+  docker compose -f compose.local.yaml run --rm -T importer-sqlite < "$temporaire"
+else
+  sudo docker compose -f compose.local.yaml run --rm -T importer-sqlite < "$temporaire"
+fi
