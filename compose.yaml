@@ -16,8 +16,8 @@ services:
       - donnees_postgresql:/var/lib/postgresql
       - ./base-de-donnees/structure.sql:/docker-entrypoint-initdb.d/01-structure.sql:ro
       - ./base-de-donnees/donnees-fictives.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
-      - ./docker/initialiser-api.sh:/docker-entrypoint-initdb.d/03-initialiser-api.sh:ro
-      - ./base-de-donnees/interface-api.sql:/docker-entrypoint-initdb.d/04-interface-api.sql:ro
+      - ./docker/configurer-roles-api.sql:/opt/laboratoire/configurer-roles-api.sql:ro
+      - ./base-de-donnees/interface-api.sql:/opt/laboratoire/interface-api.sql:ro
     networks:
       - interne
     healthcheck:
