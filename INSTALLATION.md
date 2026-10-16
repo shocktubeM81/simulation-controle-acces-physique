@@ -177,6 +177,10 @@ L'expérience TCP est indépendante de PostgreSQL à ce stade.
 
 Après les étapes PostgreSQL, suivre le [guide PostgREST](documentation/interface-api.md) pour créer les rôles API, configurer Docker et tester les décisions par HTTP sur `127.0.0.1:3000`.
 
+## Serveur local — Raspberry Pi 4
+
+La préparation de Raspberry Pi OS, de SSH, du réseau Ethernet et du premier essai TCP entre les deux ordinateurs est décrite dans le [guide Raspberry Pi](documentation/raspberry-pi.md).
+
 ## Précautions
 
 - N'utiliser que des données fictives.
