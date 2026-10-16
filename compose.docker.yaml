@@ -1,0 +1,60 @@
+# Déploiement conteneurisé sur l'ordinateur. Ne modifie pas PostgreSQL déjà installé.
+name: controle-acces-central
+
+services:
+  base-de-donnees:
+    image: postgres:18.1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: controle_acces_simulation
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/mot_de_passe_postgres
+    secrets:
+      - mot_de_passe_postgres
+      - mot_de_passe_api
+    volumes:
+      - donnees_postgresql:/var/lib/postgresql
+      - ./base-de-donnees/structure.sql:/docker-entrypoint-initdb.d/01-structure.sql:ro
+      - ./base-de-donnees/donnees-fictives.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
+      - ./docker/initialiser-api.sh:/docker-entrypoint-initdb.d/03-initialiser-api.sh:ro
+      - ./base-de-donnees/interface-api.sql:/docker-entrypoint-initdb.d/04-interface-api.sql:ro
+    networks:
+      - interne
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d controle_acces_simulation"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  interface-api:
+    image: postgrest/postgrest:v16.3
+    restart: unless-stopped
+    depends_on:
+      base-de-donnees:
+        condition: service_healthy
+    env_file:
+      - .env.docker.api
+    environment:
+      PGRST_DB_SCHEMAS: api
+      PGRST_DB_ANON_ROLE: api_anonyme
+      PGRST_SERVER_HOST: "0.0.0.0"
+      PGRST_SERVER_PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - interne
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  interne:
+    internal: true
+
+volumes:
+  donnees_postgresql:
+
+secrets:
+  mot_de_passe_postgres:
+    file: ./secrets/postgres.txt
+  mot_de_passe_api:
+    file: ./secrets/api.txt
