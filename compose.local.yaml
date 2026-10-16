@@ -40,5 +40,18 @@ services:
     volumes:
       - donnees_locales:/donnees
 
+  surveillance-cache:
+    image: controle-acces-local-diagnostic-reseau:latest
+    profiles: ["surveillance"]
+    entrypoint: ["python3", "/usr/local/bin/surveiller-cache.py"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    volumes:
+      - donnees_locales:/donnees:ro
+      - ./configuration/politique-synchronisation.json:/etc/controle-acces/politique-synchronisation.json:ro
+
 volumes:
   donnees_locales:
