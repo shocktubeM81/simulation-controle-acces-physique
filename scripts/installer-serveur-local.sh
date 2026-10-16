@@ -7,7 +7,7 @@ command -v docker >/dev/null || { echo "Docker est requis : bash scripts/prepare
 sudo docker compose version >/dev/null
 sudo docker compose -f compose.local.yaml build diagnostic-reseau cache-sqlite
 echo "Images locales construites."
-if [[ -f /etc/controle-acces/synchronisation.conf ]]; then
+if sudo test -f /etc/controle-acces/synchronisation.conf; then
   echo "Mise a jour des services systemd du projet..."
   configuration=/etc/controle-acces/synchronisation.conf
   utilisateur="$(sudo sed -n 's/^SYNC_USER=//p' "$configuration")"
