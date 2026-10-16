@@ -1,6 +1,6 @@
 # Test Wi-Fi dedie Raspberry Pi / ESP32
 
-**Statut : point d'acces du Pi active et verifie; code ESP32 prepare, compilation et connexion a valider sur le materiel.**
+**Statut : connexion Wi-Fi, affichage LCD et ping valides sur le banc; nouvelle reconnexion automatique temporisee a compiler et valider sur le materiel.**
 
 Ce test ajoute uniquement la connexion Wi-Fi et son etat sur le LCD. Il n'implemente pas le service de decision, l'authentification applicative ou une commande de porte.
 
@@ -96,7 +96,49 @@ ping -c 4 192.168.81.2
 ```
 
 4. Debrancher et rebrancher l'ESP32; verifier la reconnexion et la stabilite du LCD.
-5. Couper puis reactiver le point d'acces pour observer la perte de connexion. Le programme tente dix reconnexions supplementaires, puis affiche un etat indisponible. Appuyer sur RESET si les tentatives sont epuisees.
+5. Depuis la session SSH Ethernet du Pi, couper le point d'acces :
+
+```bash
+sudo nmcli connection down controle-acces-ap
+```
+
+Attendre la detection de la coupure sur le LCD, puis laisser le reseau arrete au moins une minute. Le LCD doit afficher `Wi-Fi deconnecte / Nouvel essai: 5 s` ou `Wi-Fi connexion...`. Le moniteur doit continuer d'annoncer de nouvelles tentatives, sans demande de RESET.
+
+6. Reactiver le point d'acces sur le Pi :
+
+```bash
+sudo nmcli --ask connection up controle-acces-ap
+```
+
+Attendre la confirmation d'activation. Sans appuyer sur RESET ni debrancher l'ESP32, attendre le retour de `Wi-Fi connecte / 192.168.81.2`, puis lancer sur le Pi :
+
+```bash
+ping -c 4 192.168.81.2
+vcgencmd get_throttled
+```
+
+Le ping doit repondre et le LCD doit rester stable. La session SSH Ethernet ne doit pas etre interrompue.
+
+## Fonctionnement de la reconnexion
+
+La premiere connexion est immediate. Chaque echec ou deconnexion detectee programme une nouvelle tentative apres cinq secondes, sans limite de nombre. Le temps de recherche et d'authentification Wi-Fi s'ajoute a ce delai; il ne s'agit pas d'une garantie de retablissement en cinq secondes.
+
+La minuterie ne bloque pas la boucle d'affichage. Elle transmet un evenement a la boucle reseau, qui evite les connexions simultanees et annule les essais a l'association au point d'acces. L'etat `connecte` est affiche apres l'evenement IP. Une erreur immediate de l'API de connexion est egalement reessayee.
+
+Les erreurs d'initialisation et une configuration locale invalide restent des erreurs a corriger; elles ne sont pas masquees par la reconnexion. Un mauvais mot de passe de format valide entrainera des tentatives repetees.
+
+## Alimentation et diagnostic du Pi
+
+Utiliser une alimentation adaptee au Pi 4 et verifier l'absence de sous-tension avant les essais prolonges :
+
+```bash
+vcgencmd get_throttled
+sudo journalctl -k -b --no-pager | grep -Ei 'under.?voltage|voltage normal'
+```
+
+Le banc a retrouve `throttled=0x0` apres remplacement de son alimentation USB de routeur. Les alertes de sous-tension constatees auparavant ne suffisent pas a prouver la cause des redemarrages, faute de journaux persistants.
+
+Le point d'acces ne demarre pas automatiquement apres un redemarrage du Pi dans cette configuration : verifier son activation avant de diagnostiquer l'ESP32.
 
 Une adresse IP affichee ne prouve pas a elle seule que le Pi repond : valider aussi le ping. Aucun echange de decision d'acces n'est realise.
 
