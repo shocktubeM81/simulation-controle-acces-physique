@@ -149,6 +149,10 @@ Terminal 2 :
 
 L'expérience TCP est indépendante de PostgreSQL à ce stade.
 
+## 9. Installer l'interface API locale
+
+Après les étapes PostgreSQL, suivre le [guide PostgREST](documentation/interface-api.md) pour créer les rôles API, configurer Docker et tester les décisions par HTTP sur `127.0.0.1:3000`.
+
 ## Précautions
 
 - N'utiliser que des données fictives.
