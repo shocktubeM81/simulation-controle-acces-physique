@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "profil": "laboratoire",
+  "intervalle_synchronisation_s": 300,
+  "alerte_retard_s": 900,
+  "validite_cache_standard_s": 3600,
+  "validite_cache_sensible_s": 0,
+  "connexion_timeout_s": 5,
+  "nouvel_essai_initial_s": 30,
+  "nouvel_essai_max_s": 300,
+  "horloge_derivation_max_s": 60,
+  "refuser_sans_synchronisation_validee": true
+}
