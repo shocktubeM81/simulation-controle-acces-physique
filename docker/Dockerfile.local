@@ -1,15 +1,17 @@
 # Compilation reproductible sur Raspberry Pi ARM64.
 FROM debian:trixie-slim AS compilation
-RUN apt-get update && apt-get install -y --no-install-recommends g++ cmake make \
+RUN apt-get update && apt-get install -y --no-install-recommends g++ cmake make libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /code
 COPY CMakeLists.txt ./
 COPY serveur-central/ serveur-central/
 COPY serveur-local/ serveur-local/
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel 2
+RUN g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic serveur-local/controle-local.cpp -lsqlite3 -o /code/controle-local
 
 FROM debian:trixie-slim
 RUN useradd --system --uid 10001 --create-home controle
 COPY --from=compilation /code/build/serveur-local /usr/local/bin/serveur-local
+COPY --from=compilation /code/controle-local /usr/local/bin/controle-local
 USER controle
 ENTRYPOINT ["/usr/local/bin/serveur-local"]
