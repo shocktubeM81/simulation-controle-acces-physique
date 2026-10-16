@@ -168,7 +168,11 @@ int main(int argc, char** argv) {
             verifier_acces(argv[2], argv[3], false);
             return 0;
         }
-        std::cerr << "Usage : controle-local initialiser | verifier CODE PORTE\n";
+        if (argc == 4 && std::string(argv[1]) == "verifier-sync") {
+            verifier_acces(argv[2], argv[3], true);
+            return 0;
+        }
+        std::cerr << "Usage : controle-local initialiser | verifier CODE PORTE | verifier-sync CODE PORTE\n";
         return 2;
     } catch (const std::exception& e) {
         std::cerr << "Erreur : " << e.what() << '\n';
