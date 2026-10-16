@@ -10,7 +10,7 @@ docker compose ps
 bash scripts/verifier-installation.sh
 ```
 
-Les fichiers `base-de-donnees/structure.sql`, `donnees-fictives.sql`, `docker/initialiser-api.sh` et `base-de-donnees/interface-api.sql` sont appliqués dans cet ordre lors de la première création du volume PostgreSQL. Ils ne sont **pas réappliqués automatiquement** sur un volume existant.
+Les fichiers `base-de-donnees/structure.sql` et `donnees-fictives.sql` initialisent le volume PostgreSQL lors de sa première création. Ensuite, à chaque installation, le script attend que PostgreSQL soit disponible et applique `docker/configurer-roles-api.sql` et `base-de-donnees/interface-api.sql`. Cette deuxième phase est relançable, notamment après une interruption. Les données fictives existantes sont conservées.
 
 Le rôle de connexion PostgREST peut uniquement passer au rôle `api_anonyme`. Celui-ci dispose du droit d'exécuter une seule fonction de vérification des autorisations, et ne possède aucun accès direct aux tables. La fonction utilise un rôle propriétaire technique distinct, doté uniquement des droits nécessaires.
 
