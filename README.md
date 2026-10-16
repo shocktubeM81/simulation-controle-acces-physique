@@ -5,8 +5,10 @@ Projet étudiant de simulation d'un contrôle d'accès distribué, avec données
 ## Architecture
 
 - **Ordinateur (serveur central)** : PostgreSQL et PostgREST, déployés avec Docker Compose.
-- **Raspberry Pi (serveur local)** : futur cache SQLite et service de synchronisation; image C++ de diagnostic déjà disponible.
+- **Raspberry Pi (serveur local)** : cache SQLite synchronisé par SSH restreint, minuterie systemd et surveillance périodique du cache.
 - **Contrôleur de porte** : microcontrôleur ESP32 et entrées/sorties physiques (étape ultérieure).
+
+Les scripts TCP et le cache SQLite statique servent encore aux diagnostics pédagogiques; les décisions synchronisées utilisent le cache distinct `autorisations-synchronisees.sqlite3`.
 
 ## Installation
 
