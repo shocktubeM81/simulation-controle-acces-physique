@@ -170,3 +170,7 @@ Le fonctionnement et les choix techniques peuvent être examinés publiquement. 
 - Ne pas utiliser ce prototype pour commander une porte ou une serrure en service.
 
 Pour approfondir : [principes de sécurité](documentation/securite.md), [conception initiale de l'ESP32](documentation/controleur-esp32.md) et [conventions de code C++](documentation/conventions-code.md).
+
+## Journal d'événements — développement
+
+La branche `feature/journal-evenements-securise` ajoute un [journal SQLite local](documentation/journal-evenements.md), séparé des caches d'autorisations et exécuté sans réseau dans un conteneur dédié. Seuls des événements fictifs marqués `TEST_LOCAL` sont acceptés à cette étape. L'envoi depuis l'ESP32 et son transport authentifié restent à implémenter.

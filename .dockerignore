@@ -1,0 +1,16 @@
+# Les secrets et donnees locales ne doivent pas entrer dans le contexte de build.
+.git
+.vscode
+**/.vscode
+secrets
+.env*
+**/configuration-wifi.locale.h
+**/*.sqlite3
+**/*.sqlite3-*
+**/__pycache__
+**/*.pyc
+build
+build-*
+**/build
+**/build-*
+**/*.log

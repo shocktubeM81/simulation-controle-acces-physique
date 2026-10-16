@@ -41,3 +41,11 @@ Références : [Docker Compose — secrets](https://docs.docker.com/compose/how-
 ## Limites de l'automatisation
 
 La synchronisation et la surveillance sont déclenchées par `systemd` sur le Raspberry Pi. Les services lancent Docker avec les droits root à partir d'un dépôt modifiable par l'utilisateur : cette installation est destinée **uniquement au laboratoire**. L'automatisation ne rend pas le code prêt pour la production. Les alertes de cache expiré sont journalisées localement, sans notification externe.
+
+## Journal local — première étape
+
+Le [journal d'événements](journal-evenements.md) utilise une base SQLite et un volume dédiés, dans un conteneur non root sans réseau ni port publié. Il refuse les champs non prévus, les identités et les horodatages déclarés dans les messages. Les entrées de cette étape sont marquées `TEST_LOCAL`; elles ne sont pas authentifiées comme provenant de l'ESP32.
+
+Le transport du contrôleur n'est pas encore implémenté. Il devra chiffrer les échanges, authentifier chaque équipement et vérifier ses droits sur les portes. Aucun accès distant au journal ne doit être ajouté via le TCP ou le HTTP de diagnostic existants.
+
+La base n'est pas chiffrée au repos ni protégée contre un administrateur de l'hôte. L'accès de consultation, la rétention, les sauvegardes et la protection des futurs identifiants doivent être définis avant d'utiliser des données personnelles réelles. Une demande manuelle ne constitue pas une preuve de passage ou d'identité.

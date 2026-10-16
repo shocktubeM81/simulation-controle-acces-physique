@@ -53,5 +53,24 @@ services:
       - donnees_locales:/donnees:ro
       - ./configuration/politique-synchronisation.json:/etc/controle-acces/politique-synchronisation.json:ro
 
+  journal-evenements:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.journal
+    image: controle-acces-journal:local
+    profiles: ["journal"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    mem_limit: 128m
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    volumes:
+      - journal_evenements:/donnees
+
 volumes:
   donnees_locales:
+  journal_evenements:
