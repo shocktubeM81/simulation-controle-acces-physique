@@ -200,8 +200,17 @@ confirmation, perte persistante à l'écran, réponses fragmentées ou invalides
 codes HTTP inattendus, mauvais UUID et horodatage absent ou mal formé.
 Ils ne remplacent pas la compilation ESP-IDF ni le test sur la carte.
 
-Le contrôle des accusés est testé sur hôte. La compilation et les essais de cette
-version avec file RAM restent à valider sur le banc.
+La compilation ESP-IDF 5.3.6 et les essais sur le banc sont validés :
+envoi des appuis et lecture SQLite, reprise automatique après arrêt du service
+HTTPS avec les mêmes UUID, conservation des huit événements à saturation,
+signalement des appuis supplémentaires perdus et maintien de
+`Journal: PERTE RAM` après livraison des événements conservés.
+
+Ce message est une alerte de perte survenue depuis le démarrage, pas l'indication
+que la file est encore pleine. Il ne se réinitialise qu'au redémarrage de la carte.
+Avant de redémarrer, vérifier la livraison de tous les événements en attente :
+la RAM n'est pas persistante. Ces essais ne prouvent pas une conservation pendant
+une coupure d'alimentation ni une sûreté adaptée à une porte réelle.
 
 Références : [esp_http_client](https://github.com/espressif/esp-idf/blob/v5.3.6/components/esp_http_client/include/esp_http_client.h),
 [générateur matériel](https://github.com/espressif/esp-idf/blob/v5.3.6/components/esp_hw_support/include/esp_random.h).
