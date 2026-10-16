@@ -1,0 +1,14 @@
+# Raspberry Pi : exécutable C++ de diagnostic, conteneur non privilégié.
+# Usage : docker compose -f compose.local.yaml run --rm diagnostic-reseau IP_ORDINATEUR 5050
+name: controle-acces-local
+services:
+  diagnostic-reseau:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.local
+    profiles: ["diagnostic"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: bridge
