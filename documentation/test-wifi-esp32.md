@@ -1,6 +1,6 @@
 # Test Wi-Fi dedie Raspberry Pi / ESP32
 
-**Statut : connexion Wi-Fi, ping et reconnexion automatique sans RESET valides sur le banc; nouvelle signalisation couleur a compiler et valider sur le materiel.**
+**Statut : connexion Wi-Fi, ping, reconnexion automatique sans RESET et signalisation vert/orange valides sur le banc. Les compteurs CPU/FPS sont desactives dans la configuration de reference; verifier leur absence apres recompilation.**
 
 Ce test ajoute uniquement la connexion Wi-Fi et son etat sur le LCD. Il n'implemente pas le service de decision, l'authentification applicative ou une commande de porte.
 
@@ -9,6 +9,8 @@ Ce test ajoute uniquement la connexion Wi-Fi et son etat sur le LCD. Il n'implem
 - **Fond vert, texte blanc** : connexion Wi-Fi et configuration IP acquises.
 - **Fond orange, texte sombre** : connexion en cours, Wi-Fi deconnecte ou configuration locale invalide. La boucle d'affichage reste active et les reconnexions se poursuivent lorsque la configuration est valide.
 - **Fond bleu sombre** : test LCD seul, sans fichier de configuration Wi-Fi local.
+
+Les compteurs CPU et FPS de LVGL sont desactives avec `CONFIG_LV_USE_PERF_MONITOR` pour garder l'ecran lisible.
 
 Le texte precise l'etat en complement de la couleur. Le vert ne garantit pas que le service applicatif du Raspberry Pi est disponible; l'orange ne signifie pas qu'un controle d'acces autonome fonctionne. Aucun mode de decision hors ligne n'est implemente.
 
@@ -157,3 +159,21 @@ sudo nmcli connection down controle-acces-ap
 ```
 
 References : [NetworkManager](https://networkmanager.pages.freedesktop.org/NetworkManager/NetworkManager/nm-settings-nmcli.html), [ESP-IDF ESP-NETIF](https://docs.espressif.com/projects/esp-idf/en/v5.3.6/esp32c6/api-reference/network/esp_netif.html).
+
+## Retirer les compteurs CPU/FPS d'une configuration existante
+
+Le fichier `sdkconfig.defaults` les desactive pour une nouvelle compilation configuree depuis zero. Si `sdkconfig` existe deja, sa valeur reste prioritaire. Depuis `controleur-esp32/`, appliquer egalement le reglage local :
+
+```bash
+sed -i 's/^CONFIG_LV_USE_PERF_MONITOR=y$/# CONFIG_LV_USE_PERF_MONITOR is not set/' sdkconfig
+idf.py reconfigure
+idf.py build
+```
+
+Verifier l'option avant de televerser :
+
+```bash
+grep '^# CONFIG_LV_USE_PERF_MONITOR is not set$' sdkconfig
+```
+
+Apres televersement, verifier l'absence des compteurs CPU/FPS et le maintien du signalement vert/orange.
