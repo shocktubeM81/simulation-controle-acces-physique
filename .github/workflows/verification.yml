@@ -1,0 +1,28 @@
+name: Vérification du dépôt
+
+on:
+  push:
+    branches: ["refactor/consolidation-scripts", "main"]
+  pull_request:
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la syntaxe des scripts
+        run: |
+          bash -n scripts/*.sh
+          sh -n docker/initialiser-api.sh
+          sh -n scripts/exporter-autorisations-ssh.sh
+      - name: Vérifier Docker Compose
+        run: |
+          docker compose -f compose.local.yaml config --quiet
+      - name: Installer les dépendances C++
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libsqlite3-dev
+      - name: Compiler le C++20
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 2
