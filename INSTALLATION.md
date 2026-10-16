@@ -138,3 +138,69 @@ Le conteneur SQLite lui-même n'a aucun accès réseau.
 automatique des synchronisations, compte SSH distant non restreint et
 politique de révocation à améliorer. Voir
 [politique et sécurité](documentation/politique-synchronisation.md).
+
+## 6. Connexion SSH restreinte et synchronisation périodique
+
+La configuration précédente avec un compte SSH personnel est réservée au
+diagnostic. Pour automatiser, utiliser une **nouvelle** identité limitée à
+l'export fictif. Le timer **n'est pas activé automatiquement**.
+
+Sur le Raspberry Pi, après mise à jour du dépôt :
+
+```bash
+bash scripts/preparer-cle-synchronisation.sh
+scp ~/.ssh/id_ed25519_controle_sync.pub david@ADRESSE_ORDINATEUR:~/controle-sync.pub
+```
+
+Sur l'ordinateur, mettre à jour le dépôt puis :
+
+```bash
+sudo bash scripts/installer-acces-export-central.sh ~/controle-sync.pub
+```
+
+Cette étape crée `controle-export` avec une clé `authorized_keys` forcée à
+exécuter uniquement l'export de PostgREST sur boucle locale. Ne jamais y
+copier une clé privée. Les autres clés SSH du compte personnel ne sont pas
+modifiées automatiquement.
+
+De retour sur le Raspberry Pi, vérifier la nouvelle identité :
+
+```bash
+ssh -T -o BatchMode=yes -o IdentitiesOnly=yes \
+  -i ~/.ssh/id_ed25519_controle_sync \
+  controle-export@ADRESSE_ORDINATEUR exporter-autorisations
+```
+
+La réponse doit contenir un JSON fictif. Ensuite, pour préparer
+l'automatisation :
+
+```bash
+sudo bash scripts/installer-timer-raspberry-pi.sh \
+  "$(id -un)" controle-export@ADRESSE_ORDINATEUR
+sudo systemctl start controle-acces-synchronisation.service
+sudo systemctl status controle-acces-synchronisation.service --no-pager
+```
+
+Si ce lancement manuel est réussi, activer la périodicité :
+
+```bash
+sudo systemctl enable --now controle-acces-synchronisation.timer
+systemctl list-timers controle-acces-synchronisation.timer
+```
+
+Consulter les journaux :
+
+```bash
+sudo journalctl -u controle-acces-synchronisation.service -n 40 --no-pager
+```
+
+L'ancien accès libre du Raspberry Pi au compte personnel reste actif jusqu'à
+ce que **l'ancienne clé** soit retirée manuellement de
+`~/.ssh/authorized_keys` sur l'ordinateur. Ne retirer que la ligne concernée
+après avoir validé la clé restreinte et le service.
+
+**Limite de ce prototype :** le timer s'exécute en root pour Docker et charge
+les fichiers Compose depuis un dépôt modifiable par l'utilisateur. Ce modèle
+ne convient pas à une production sans durcissement. Les valeurs temporelles
+sont des hypothèses de simulation; voir
+[politique de synchronisation](documentation/politique-synchronisation.md).
