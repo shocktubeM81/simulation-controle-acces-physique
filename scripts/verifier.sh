@@ -57,14 +57,37 @@ cache_statique() {
   echo "OK : cache statique distinct du cache synchronise."
 }
 
+journal_evenements() {
+  # Tests sur bases temporaires seulement; aucun evenement d'exploitation ajoute.
+  sudo docker compose -f compose.local.yaml run --rm --no-deps -T \
+    --entrypoint python3 journal-evenements \
+    -B /usr/local/share/controle-acces/tests/test_journal_evenements.py
+}
+
+journal_https() {
+  # Boucle locale du conteneur sans reseau externe et PKI temporaire.
+  sudo docker compose -f compose.local.yaml run --rm --no-deps -T \
+    --entrypoint python3 journal-evenements \
+    -B /opt/controle-acces/serveur-local/tests/test_journal_https.py
+}
+
+certificats_journal() {
+  # Autorites et cles de test ephemeres uniquement, sans acces reseau.
+  python3 -B serveur-local/tests/test_certificats_journal.py
+}
+
 case "${1:-}" in
   central) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh central"; central ;;
   pi) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh pi"; pi ;;
+  certificats-journal) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh certificats-journal"; certificats_journal ;;
+  journal-https) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh journal-https"; journal_https ;;
+  journal) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh journal"; journal_evenements ;;
   seuils) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh seuils"; seuils ;;
   cache-statique) [[ $# -eq 1 ]] || erreur "Usage : verifier.sh cache-statique"; cache_statique ;;
   reseau)
     [[ $# -ge 2 && $# -le 3 ]] || erreur "Usage : verifier.sh reseau IP [PORT]"
     sudo docker compose -f compose.local.yaml run --rm diagnostic-reseau "$2" "${3:-5050}"
     ;;
-  *) erreur "Usage : verifier.sh central|pi|seuils|cache-statique|reseau IP [PORT]" ;;
+  *) erreur "Usage : verifier.sh central|pi|seuils|cache-statique|journal|journal-https|certificats-journal|reseau IP [PORT]" ;;
 esac
+

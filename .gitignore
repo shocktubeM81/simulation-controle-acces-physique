@@ -73,3 +73,14 @@ Testing/
 # Secrets du déploiement Docker (locaux uniquement)
 secrets/
 .env.docker.api
+
+# Journaux locaux et caches Python
+*.sqlite3
+*.sqlite3-*
+__pycache__/
+*.pyc
+
+# Certificats et micrologiciels locaux pouvant contenir une cle privee
+*.pem
+*.bin
+*.elf

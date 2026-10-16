@@ -1,6 +1,8 @@
 # Contrôleur de secteur ESP32 — conception initiale
 
-**Statut : spécification de travail, interface non encore implémentée.**
+**Statut : LCD, connexion Wi-Fi et reconnexion automatique validés. Simulation locale de sortie par BOOT implémentée, à valider sur la carte. Interface applicative de décision d’accès non encore implémentée.**
+
+Le programme `controleur-esp32/` affiche l’état réseau et permet de simuler une demande de sortie intérieure avec BOOT. Voir le [guide du bouton de sortie simulé](sortie-manuelle-esp32.md) pour son comportement et sa validation. Voir le [guide d’installation et du premier test LCD](installation-esp32.md) pour la configuration matérielle, les versions et la procédure de validation.
 
 ## Objectif
 
@@ -14,7 +16,7 @@ Simuler un contrôleur de secteur ESP32 desservant **une ou deux portes**, avec 
 | Raspberry Pi | Cache SQLite synchronisé, contrôle de fraîcheur, calcul de la décision, interface IP vers le contrôleur |
 | ESP32 | Acquisition des entrées, transmission de la demande, signalisation et commande d'un actionneur de démonstration |
 
-Le Raspberry Pi reste la **source de décision** : aucune copie de la base SQLite ni aucune règle d'autorisation ne sont embarquées dans l'ESP32.
+Pour une demande d’entrée par identifiant, le Raspberry Pi reste la **source de décision** : aucune copie de la base SQLite ni aucune règle d’autorisation ne sont embarquées dans l’ESP32. Le bouton intérieur BOOT représente une action manuelle locale distincte, limitée à une simulation d’affichage de cinq secondes, sans commande physique ni appel au Pi.
 
 ## Transport et alimentation
 
@@ -76,6 +78,10 @@ L'alternative de décision est `REFUSE`. Une erreur de transport, une réponse i
 - Commenter les **invariants et choix de conception**, non les opérations évidentes.
 - Conserver les cinq scripts Shell actuels : les tests du futur service seront intégrés à `scripts/verifier.sh`.
 
-## Point restant à préciser
+## Matériel de référence
 
-Le modèle exact de la carte ESP32 et les GPIO disponibles détermineront l'environnement de compilation et les périphériques de démonstration. Ne pas choisir les broches avant d'avoir identifié la carte.
+La carte testée est une Waveshare ESP32-C6-LCD-1.47 non tactile, équipée d’un ESP32-C6FH8 avec 8 Mo de flash.
+
+Le LCD utilise GPIO6/7 pour le SPI, GPIO14/15 pour CS/DC et GPIO21/22 pour RESET et le rétroéclairage. Le lecteur microSD partage le bus SPI et utilise GPIO4 pour CS et GPIO5 pour MISO. La LED RGB utilise GPIO8.
+
+Le LCD et la liaison Wi-Fi sont validés. BOOT utilise GPIO9; sa lecture applicative et la simulation de sortie doivent être validées selon le guide dédié. La microSD, la LED RGB et les échanges applicatifs restent à tester ou à développer.

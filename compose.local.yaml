@@ -53,5 +53,53 @@ services:
       - donnees_locales:/donnees:ro
       - ./configuration/politique-synchronisation.json:/etc/controle-acces/politique-synchronisation.json:ro
 
+  journal-evenements:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.journal
+    image: controle-acces-journal:local
+    profiles: ["journal"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    mem_limit: 128m
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    volumes:
+      - journal_evenements:/donnees
+
+  journal-https:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.journal
+    image: controle-acces-journal:local
+    profiles: ["journal-https"]
+    entrypoint: ["python3", "-B", "/opt/controle-acces/serveur-local/journal-https.py"]
+    command: []
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 64
+    restart: "no"
+    ports:
+      - "192.168.81.1:8443:8443"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    volumes:
+      - journal_evenements:/donnees
+      - /etc/controle-acces/journal-pki:/run/journal-pki:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
+
 volumes:
   donnees_locales:
+  journal_evenements:
+
