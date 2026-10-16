@@ -5,4 +5,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 command -v docker >/dev/null || { echo "Docker est requis : bash scripts/preparer-raspberry-pi.sh" >&2; exit 1; }
 sudo docker compose version >/dev/null
 sudo docker compose -f compose.local.yaml build diagnostic-reseau cache-sqlite importer-sqlite surveillance-cache
-echo "Images ARM64 de diagnostic et de cache SQLite construites. Aucun service permanent n'a été lancé."
+echo "Images locales construites."
+if [[ -f /etc/controle-acces/synchronisation.conf ]]; then
+  echo "Mise a jour des services systemd du projet..."
+  sudo bash scripts/installer-surveillance.sh
+fi
