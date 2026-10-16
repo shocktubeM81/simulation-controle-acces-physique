@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import time
 
-DB = "/donnees/autorisations.sqlite3"
+DB = "/donnees/autorisations-synchronisees.sqlite3"
 MAX_BYTES = 2_000_000
 CLOCK_SKEW_S = 60
 
