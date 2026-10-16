@@ -13,4 +13,4 @@ refuse=$("${compose[@]}" run --rm -T cache-sqlite verifier FICTIF-0003 Laboratoi
 echo "OK : FICTIF-0001 -> $autorise"
 echo "OK : FICTIF-0003 -> $refuse"
 echo "OK : données accessibles après arrêt et recréation des conteneurs."
-echo "Ce test utilise des données fictives locales. Synchronisation non implémentée."
+echo "Ce test utilise des données fictives statiques et un fichier SQLite DISTINCT du cache synchronisé."
