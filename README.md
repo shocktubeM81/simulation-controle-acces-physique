@@ -34,18 +34,18 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 
 ### 2.2. Waveshare ESP32-C6-LCD-1.47
 
-**Référence de la carte actuellement disponible :** `ESP32-C6-LCD-1.47` (sans suffixe `-M`). Il s'agit de la carte avec écran, et **non** de la variante tactile ni d'un ESP32 DevKit générique.
+**Référence de la carte actuellement disponible :** `ESP32-C6-LCD-1.47` (SKU Waveshare **28563**, sans suffixe `-M`). Il s'agit de la carte avec écran, et **non** de la variante tactile ni d'un ESP32 DevKit générique.
 
-- **Microcontrôleur :** Espressif ESP32-C6, architecture RISC-V, jusqu'à 160 MHz.
+- **Microcontrôleur :** Espressif **ESP32-C6FH4**, architecture RISC-V, jusqu'à 160 MHz.
 - **Mémoire Flash :** 4 Mo intégrés.
 - **Écran :** LCD TFT couleur de 1,47 po, résolution **172 × 320 pixels**, contrôleur **ST7789**, interface SPI; **non tactile**.
 - **Communications sans fil :** Wi-Fi 2,4 GHz (Wi-Fi 6) et Bluetooth Low Energy 5; IEEE 802.15.4 également pris en charge par l'ESP32-C6.
 - **Connexion et alimentation :** port USB-C, utilisable pour la programmation et l'alimentation de la carte.
 - **Périphériques intégrés :** emplacement microSD/TF, DEL RGB, boutons `BOOT` et `RST`.
-- **Entrées/sorties :** broches GPIO accessibles sur la carte; leur affectation doit tenir compte des connexions déjà utilisées par l'écran et les périphériques intégrés.
+- **Entrées/sorties :** broches GPIO accessibles sur la carte; l'écran emploie notamment **GPIO6/7** (SPI), **GPIO14/15** (CS/DC) et **GPIO21/22** (RST/rétroéclairage). Le lecteur microSD partage GPIO6/7 et utilise GPIO4 (CS) et GPIO5 (MISO); la DEL RGB utilise GPIO8. Vérifier les fonctions et conflits de brochage avant d'ajouter des périphériques.
 - **État du projet :** carte identifiée et disponible; le programme embarqué propre au projet reste à développer et à tester.
 
-Documentation constructeur : [ESP32-C6-LCD-1.47 — Waveshare](https://docs.waveshare.com/ESP32-C6-LCD-1.47). Le schéma et le brochage du constructeur doivent être consultés avant tout raccordement.
+Documentation constructeur : [ESP32-C6-LCD-1.47 — Waveshare](https://docs.waveshare.com/ESP32-C6-LCD-1.47). Le schéma et le brochage du constructeur doivent être consultés avant tout raccordement. Waveshare recommande de **limiter le rétroéclairage à 50 %** pour éviter une surchauffe de l'écran.
 
 ### 2.3. Périphériques et évolutions envisagés — non requis actuellement
 
@@ -104,7 +104,7 @@ Les outils de compilation et les bibliothèques sont installés **dans les image
 Ces outils sont **prévus**, mais ne constituent pas encore des prérequis pour exécuter la partie central/Raspberry Pi déjà développée :
 
 - **Visual Studio Code** : environnement de programmation envisagé.
-- **Extension Espressif IDF pour VS Code** et **ESP-IDF** : compilation, configuration et programmation de l'ESP32-C6.
+- **Extension Espressif IDF pour VS Code** et **ESP-IDF** : compilation, configuration et programmation de l'ESP32-C6; Waveshare demande **ESP-IDF 5.3.1 ou une version ultérieure** pour ses exemples.
 - **Pilote ou interface USB série selon le poste utilisé** : connexion, flashage et diagnostic de la carte.
 - **Bibliothèques pour l'écran (ST7789) et, si nécessaire, LVGL** : interface graphique embarquée.
 - **Bibliothèques réseau et périphériques** : selon le protocole et les modules retenus.
@@ -159,7 +159,7 @@ Les matériels équivalents restent admissibles, à condition de **documenter le
 
 Le fonctionnement et les choix techniques peuvent être examinés publiquement. La sécurité ne repose pas sur l'obscurité du code, mais sur l'authentification, le moindre privilège, le cloisonnement et les protocoles éprouvés.
 
-- N'utiliser que des **identifiants et données fictifs** dans le laboratoire.
+- N'utiliser que des **identifiants fictifs et des données fictives** dans le laboratoire.
 - Conserver les **clés privées, mots de passe et fichiers de secrets hors de Git**.
 - Ne pas exposer l'API expérimentale non authentifiée sur le réseau ou sur Internet.
 - Ne pas confondre une décision logicielle avec la conception de la sûreté des personnes (évacuation, panne d'alimentation, incendie).
