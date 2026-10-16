@@ -8,7 +8,8 @@ La sécurité ne repose pas sur le secret du code, des ports ou du fonctionnemen
 
 ## Défenses appliquées dès le déploiement
 
-- PostgreSQL n'expose **aucun port** sur l'hôte; il n'est accessible que depuis le réseau privé Docker.
+- PostgreSQL n'expose **aucun port** sur l'hôte; il est raccordé seulement au réseau Docker privé `interne`.
+- PostgREST est raccordé au réseau privé pour joindre PostgreSQL et au réseau `acces_local` pour publier son API exclusivement sur `127.0.0.1:3000`. Cette double connexion est volontaire; elle ne donne pas à PostgreSQL de port publié.
 - L'API est publiée **uniquement sur 127.0.0.1:3000**; aucun appareil distant n'y accède à ce stade.
 - L'API n'expose que la fonction `api.verifier_acces`, et pas les tables.
 - Les comptes de base de données sont séparés; le compte de connexion PostgREST n'est pas superutilisateur.
