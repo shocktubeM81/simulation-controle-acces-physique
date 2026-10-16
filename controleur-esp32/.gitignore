@@ -4,3 +4,4 @@
 /dependencies.lock
 /managed_components/
 /.vscode/
+/main/configuration-wifi.locale.h

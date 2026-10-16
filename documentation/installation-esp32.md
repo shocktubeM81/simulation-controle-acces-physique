@@ -4,7 +4,7 @@
 
 Ce guide permet de compiler et de téléverser le test LCD situé dans `controleur-esp32/`.
 
-Le programme affiche `LCD OK` et `ESP32-C6` sur fond bleu sombre, avec un rétroéclairage réglé à 50 %. Il n’initialise ni le Wi-Fi, ni la microSD, ni la LED RGB. Les communications avec le Raspberry Pi restent à implémenter.
+Le programme affiche `LCD OK` et `ESP32-C6` sur fond bleu sombre, avec un rétroéclairage réglé à 50 %. Sans fichier de configuration Wi-Fi local, il n’initialise ni le Wi-Fi, ni la microSD, ni la LED RGB. Un [test Wi-Fi optionnel](test-wifi-esp32.md) est disponible; sa validation matérielle reste à effectuer. Les communications avec le Raspberry Pi restent à implémenter.
 
 ## Configuration de référence
 

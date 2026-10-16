@@ -6,6 +6,7 @@
 
 #include "ST7789.h"
 #include "LVGL_Driver.h"
+#include "reseau.h"
 
 void app_main(void)
 {
@@ -24,7 +25,14 @@ void app_main(void)
 
     ESP_LOGI("LCD_TEST", "Test LCD actif, luminosite 50 %%");
 
+    reseau_initialiser();
+
     while (1) {
+        EtatReseau etat;
+        if (reseau_lire_etat(&etat)) {
+            lv_label_set_text_fmt(label, "LCD OK\n%s", etat.texte);
+            lv_obj_center(label);
+        }
         lv_timer_handler();
         vTaskDelay(pdMS_TO_TICKS(10));
     }
