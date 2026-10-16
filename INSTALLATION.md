@@ -4,6 +4,24 @@ Ce guide permet de préparer le serveur central sous Ubuntu, de compiler les pre
 
 Les commandes sont exécutées depuis la racine du dépôt, sauf indication contraire.
 
+## Installation automatisée sur Ubuntu
+
+Pour un serveur Ubuntu sur lequel PostgreSQL et Docker sont déjà installés, une seule commande prépare la base fictive, les rôles techniques, l'API PostgREST et effectue un test HTTP :
+
+```bash
+bash scripts/installer-serveur-central.sh
+```
+
+Le script peut être relancé : il conserve la base et les données existantes, évite de réimporter les jeux fictifs et ne remplace pas un fichier `.env.api` déjà présent. Il crée un mot de passe technique aléatoire seulement lors de la première configuration. **Il n'efface aucune donnée.** Lors d'une réinstallation sur une autre machine, le rôle PostgreSQL correspondant au compte Ubuntu doit préalablement exister et être utilisable en connexion locale avec `psql` (voir les étapes manuelles ci-dessous). Le script demande les privilèges `sudo`, et éventuellement le mot de passe de connexion PostgreSQL du propriétaire.
+
+**Sur l'EliteBook déjà configuré :** exécuter le script permet de vérifier et de remettre en place les composants sans repartir de zéro. Il ne remplace pas le mot de passe technique ni la configuration déjà opérationnelle.
+
+Les fichiers de configuration locaux contenant des secrets sont exclus par `.gitignore`.
+
+Si une étape échoue, consulter [la configuration détaillée de l'API](documentation/interface-api.md), puis relancer le script une fois le problème corrigé.
+
+---
+
 ## 1. Récupérer le dépôt
 
 Sur une nouvelle machine :
