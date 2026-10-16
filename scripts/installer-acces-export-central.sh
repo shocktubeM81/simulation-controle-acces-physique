@@ -16,6 +16,9 @@ if ! id -u controle-export >/dev/null 2>&1; then
   useradd --system --create-home --home-dir /var/lib/controle-export \
     --shell /bin/sh --user-group controle-export
 fi
+# Le champ de mot de passe « * » ne peut pas authentifier par mot de passe,
+# mais évite le statut de compte verrouillé qui peut bloquer une clé publique.
+usermod --password "*" controle-export
 home="$(getent passwd controle-export | cut -d: -f6)"
 [[ "$home" == "/var/lib/controle-export" ]] || {
   echo "Compte controle-export existant avec un autre répertoire : intervention nécessaire." >&2; exit 1;
