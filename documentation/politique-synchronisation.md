@@ -94,8 +94,7 @@ sans instantané ou si l'horloge recule. La valeur est pour l'instant codée dan
 le prototype en C++ et **doit encore être pilotée à partir du fichier JSON**
 avant de qualifier le paramétrage de centralisé.
 
-Le prototype n'implémente **pas encore** la cadence automatique de 300 secondes,
-les alertes ni les profils distincts pour portes sensibles. Les dates
+Le timer de synchronisation fonctionne selon un intervalle de cinq minutes après le cycle précédent. La surveillance indépendante peut classifier le cache en `CACHE_NORMAL`, `CACHE_RETARD` (≥ 900 secondes) ou `CACHE_EXPIRE` (≥ 3600 secondes) et journalise le résultat via `systemd`. **Aucune notification externe n'est encore envoyée**. Les profils distincts pour les portes sensibles ne sont pas implémentés. Les dates
 individuelles `date_debut` et `date_fin` sont maintenant vérifiées en mode
 synchronisé. Les autorisations fixes du mode de test `verifier` demeurent
 séparées des autorisations validées via `verifier-sync`.
@@ -134,3 +133,59 @@ pour les données réelles.
 **La clé temporaire `id_ed25519_controle_acces` déjà autorisée sur le compte
 personnel doit être retirée manuellement de son `authorized_keys`, mais
 seulement après validation de la nouvelle identité restreinte.**
+
+## Surveillance installée automatiquement
+
+Sur le Raspberry Pi, après mise à jour du dépôt, la commande habituelle :
+
+```bash
+bash scripts/installer-serveur-local.sh
+```
+
+reconstruit l'image ARM64, effectue les tests simulés des seuils,
+installe `controle-acces-surveillance.service` et
+`controle-acces-surveillance.timer`. Si le minuteur de synchronisation
+existe et est actif, le nouveau minuteur est automatiquement activé.
+
+Le contrôle de fraîcheur s'exécute chaque minute et lit le volume SQLite
+en **lecture seule**. Il ne modifie ni la base, ni les autorisations, ni
+l'heure système. Il n'interrompt pas les tentatives de synchronisation.
+Pour vérifier les seuils sans panne réelle :
+
+```bash
+bash scripts/tester-surveillance-cache.sh
+```
+
+Afficher les états récents :
+
+```bash
+sudo journalctl -u controle-acces-surveillance.service -n 30 --no-pager
+systemctl list-timers --all controle-acces-surveillance.timer
+```
+
+Pour une simulation de panne réseau **non intrusive**, désactiver
+provisoirement et uniquement le minuteur de synchronisation :
+
+```bash
+sudo systemctl stop controle-acces-synchronisation.timer
+```
+
+Cela laisse le dernier cache intact; après 15 minutes, le moniteur
+journalise `CACHE_RETARD`; après 60 minutes, `CACHE_EXPIRE`.
+Réactiver ensuite le minuteur :
+
+```bash
+sudo systemctl start controle-acces-synchronisation.timer
+sudo systemctl start controle-acces-synchronisation.service
+```
+
+**Attention :** arrêter le minuteur n'empêche pas un service ponctuel déjà
+en cours. L'arrêt est strictement une expérience de laboratoire. Ne
+pas désactiver le réseau complet du Raspberry Pi, qui pourrait aussi
+interrompre sa connexion SSH d'administration.
+
+Le moniteur produit un état dans `journald` mais ne configure
+pas encore de notifications par courriel, téléphone ou supervision distante.
+Le refus d'accès par le moteur C++ reste un contrôle **indépendant** de
+la supervision : le minuteur ne doit jamais être une condition nécessaire
+pour que le système refuse un cache périmé.
