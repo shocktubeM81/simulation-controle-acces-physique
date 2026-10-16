@@ -17,10 +17,11 @@ void verifier(int rc, sqlite3* db, const std::string& operation) {
 
 class Base {
 public:
-    explicit Base(bool creation) {
+    explicit Base(bool creation, bool synchronise = false) {
         const int flags = creation ? SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
                                    : SQLITE_OPEN_READONLY;
-        const int rc = sqlite3_open_v2(chemin, &db_, flags, nullptr);
+        const int rc = sqlite3_open_v2(synchronise ? "/donnees/autorisations-synchronisees.sqlite3" : chemin,
+                                       &db_, flags, nullptr);
         if (rc != SQLITE_OK) {
             const std::string message = db_ ? sqlite3_errmsg(db_) : "ouverture impossible";
             if (db_) sqlite3_close(db_);
@@ -90,7 +91,7 @@ void initialiser() {
 
 void verifier_acces(const std::string& identifiant, const std::string& porte,
                     bool exiger_synchro) {
-    Base base(false);
+    Base base(false, exiger_synchro);
     if (exiger_synchro) {
         sqlite3_stmt* horodatage = nullptr;
         const int prep = sqlite3_prepare_v2(base.get(),
