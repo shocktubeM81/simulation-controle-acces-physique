@@ -59,21 +59,19 @@ Le calcul de fraîcheur doit gérer les redémarrages et les changements d'horlo
   relèvent du code du bâtiment applicable et d'une analyse propre aux lieux.
 - Les portes sensibles ne sont pas toutes nécessairement fail-secure :
   déterminer les exigences de vie-sécurité avec les responsables compétents.
-- Le cache SQLite actuel contient des fixtures statiques et ne reçoit
-  **aucune synchronisation**. Il ne doit pas être présenté comme frais.
+- Le cache SQLite **statique de diagnostic** contient des fixtures locales; le fichier `autorisations-synchronisees.sqlite3` est distinct et reçoit les instantanés SSH.
 - La politique de renouvellement des droits ne remplace pas un mécanisme
   d'urgence pour révoquer un badge perdu ni la procédure manuelle sur site.
-- La liaison PostgreSQL/PostgREST reste sur boucle locale en attendant
-  un tunnel authentifié/chiffré et une authentification du service local.
+- L'API PostgreSQL/PostgREST reste sur boucle locale; le Raspberry Pi obtient l'export via un compte SSH à commande forcée.
 - Pour des données réelles : séparer secrets et code, limiter les droits,
   consigner les événements, vérifier l'horloge et tester les pannes.
 
-## Première liaison réalisée dans le dépôt (non encore validée sur machines)
+## Synchronisation manuelle (diagnostic historique)
 
 Le Raspberry Pi peut demander ponctuellement un instantané fictif par SSH :
 
 ```bash
-bash scripts/synchroniser-serveur-local.sh UTILISATEUR@ORDINATEUR
+bash scripts/synchroniser-serveur-local.sh controle-export@ORDINATEUR ~/.ssh/id_ed25519_controle_sync
 ```
 
 La commande SSH s'exécute sur l'hôte Raspberry Pi et utilise sa configuration
@@ -83,11 +81,7 @@ l'entrée standard d'un conteneur sans réseau qui importe la base en transactio
 Aucune clé SSH n'est montée dans le conteneur. L'heure centrale est contrôlée,
 mais cette première version dépend de la synchronisation des horloges système.
 
-Le poste distant utilise encore un compte SSH ordinaire et l'API exporte des
-données fictives sous le rôle anonyme **sur boucle locale seulement** : il
-s'agit d'un laboratoire, pas d'une architecture de production. Pour la suite :
-compte SSH restreint à une commande, autorisation fine par bâtiment, signature
-d'instantanés, numéros de version monotones transactionnels et journal d'audit.
+Le compte distant `controle-export` exécute exclusivement la commande d'export SSH. L'API exporte encore des données fictives sous un rôle anonyme accessible seulement sur boucle locale. Pour la suite : autorisations fines par bâtiment, intégrité des instantanés, versions monotones transactionnelles et audit.
 
 Le cache synchronisé est enregistré dans `autorisations-synchronisees.sqlite3`, distinct du fichier de fixtures `autorisations.sqlite3` ; les tests initiaux ne peuvent donc pas réintroduire des droits révoqués dans le cache synchronisé.\n\nLa commande `verifier-sync` du prototype C++ refuse au-delà de 3600 secondes,
 sans instantané ou si l'horloge recule. La valeur est pour l'instant codée dans
@@ -130,9 +124,7 @@ des données : l'API d'export reste anonyme sur boucle locale et retourne
 toutes les autorisations fictives. Une politique par bâtiment est requise
 pour les données réelles.
 
-**La clé temporaire `id_ed25519_controle_acces` déjà autorisée sur le compte
-personnel doit être retirée manuellement de son `authorized_keys`, mais
-seulement après validation de la nouvelle identité restreinte.**
+**L'ancienne clé `id_ed25519_controle_acces` a été révoquée du compte personnel lors du nettoyage d'octobre 2026.** La clé dédiée `id_ed25519_controle_sync` reste nécessaire à `controle-export`.
 
 ## Surveillance installée automatiquement
 
