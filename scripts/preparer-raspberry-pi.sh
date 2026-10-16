@@ -15,6 +15,12 @@ if command -v docker >/dev/null; then
     erreur "Docker est déjà installé mais Compose est absent ou inaccessible : vérifier manuellement avant de modifier les paquets."
 fi
 
+for paquet in docker.io docker-compose podman-docker containerd runc; do
+    if dpkg-query -W -f='${Status}' "$paquet" 2>/dev/null | grep -q "install ok installed"; then
+        erreur "Paquet potentiellement conflictuel déjà installé : $paquet. Vérifier avant toute modification."
+    fi
+done
+
 echo "Installation de Docker depuis le dépôt officiel, avec vérification de signature APT."
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl
