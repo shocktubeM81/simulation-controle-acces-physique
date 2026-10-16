@@ -46,7 +46,7 @@ La synchronisation et la surveillance sont déclenchées par `systemd` sur le Ra
 
 Le [journal d'événements](journal-evenements.md) utilise une base SQLite et un volume dédiés, dans un conteneur non root sans réseau ni port publié. Il refuse les champs non prévus, les identités et les horodatages déclarés dans les messages. Les entrées de cette étape sont marquées `TEST_LOCAL`; elles ne sont pas authentifiées comme provenant de l'ESP32.
 
-Le transport du contrôleur n'est pas encore implémenté. Il devra chiffrer les échanges, authentifier chaque équipement et vérifier ses droits sur les portes. Aucun accès distant au journal ne doit être ajouté via le TCP ou le HTTP de diagnostic existants.
+Le [service HTTPS mTLS](journal-https.md) chiffre les échanges, exige un certificat client et vérifie son empreinte et ses droits sur les portes. Le client réseau du contrôleur ESP32 reste à implémenter. Aucun accès distant au journal ne doit être ajouté via le TCP ou le HTTP de diagnostic existants.
 
 La base n'est pas chiffrée au repos ni protégée contre un administrateur de l'hôte. L'accès de consultation, la rétention, les sauvegardes et la protection des futurs identifiants doivent être définis avant d'utiliser des données personnelles réelles. Une demande manuelle ne constitue pas une preuve de passage ou d'identité.
 
@@ -54,4 +54,5 @@ La base n'est pas chiffrée au repos ni protégée contre un administrateur de l
 
 L'[outil de préparation des certificats](certificats-journal.md) sépare les identités serveur et contrôleur, chiffre la clé d'autorité et prépare une liste d'empreintes et de portes autorisées. La clé d'autorité reste sur l'EliteBook et n'est pas déployée au Pi.
 
-Cette préparation n'authentifie pas encore des événements réseau : le service HTTPS et le client ESP32 restent à implémenter. Le contrôle de validité des certificats, les droits par porte, la révocation et le renouvellement devront être testés avant de considérer le transport comme opérationnel.
+Le service HTTPS marque les événements authentifiés `MTLS`; le CLI local conserve `TEST_LOCAL`. Les tests couvrent les refus TLS, les empreintes inconnues, les portes interdites, les doublons et les erreurs de stockage. La validation Docker ARM64 sur le banc reste nécessaire. La révocation par retrait d'empreinte exige un redémarrage du service; renouvellement, horloge et retransmissions ESP32 restent à compléter. La publication Docker est limitée à `192.168.81.1:8443`; le bridge ne bloque pas les connexions sortantes.
+

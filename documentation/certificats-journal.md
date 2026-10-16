@@ -4,7 +4,7 @@
 
 Cette étape prépare des certificats pour une future connexion HTTPS avec authentification mutuelle (mTLS). Aucun service réseau n'est ouvert et le programme ESP32 n'est pas modifié.
 
-Les 10 tests cryptographiques ont été exécutés avec OpenSSL 3.3.0 et Python 3.12.14 sur le poste de préparation. Ils restent à exécuter sur l'EliteBook utilisé pour le banc. OpenSSL 3.x et Python 3 sont nécessaires; aucune dépendance Python externe n'est ajoutée.
+Les 10 tests cryptographiques ont été exécutés avec OpenSSL 3.3.0 et Python 3.12.14 sur le poste de préparation. Ils ont également été validés sur l'EliteBook avec OpenSSL 3.5.5. OpenSSL 3.x et Python 3 sont nécessaires; aucune dépendance Python externe n'est ajoutée.
 
 ## Identités et séparation
 
@@ -13,7 +13,7 @@ Les 10 tests cryptographiques ont été exécutés avec OpenSSL 3.3.0 et Python 
 - ESP32 : certificat de rôle `clientAuth`, identité technique `SECTEUR-01` et URI `urn:controle-acces:controleur:SECTEUR-01`.
 - Droits préparés : seule `PORTE-01` est associée au contrôleur, avec empreinte SHA-256 de son certificat.
 
-Ces identités désignent des équipements, pas des personnes. Le futur service devra vérifier à la fois le certificat client et ses droits sur la porte. La liste de droits n'est pas encore exploitée par un serveur.
+Ces identités désignent des équipements, pas des personnes. Le [service HTTPS](journal-https.md) vérifie le certificat client, son empreinte et ses droits sur la porte.
 
 L'autorité est valable 365 jours et les certificats d'équipement 90 jours. Le renouvellement et la révocation devront être intégrés avant expiration; ils ne sont pas automatisés par cet outil de préparation initiale.
 
@@ -45,7 +45,7 @@ Lancer sans sudo dans un terminal interactif :
 python3 scripts/preparer-certificats-journal.py
 ```
 
-Choisir et confirmer une phrase de protection longue, au minimum 16 caractères recommandés. La phrase n'est pas affichée et n'est pas enregistrée par l'outil. Elle est transmise à OpenSSL par son entrée standard, jamais dans la commande ni une variable d'environnement.
+Choisir et confirmer une phrase de protection longue, au minimum 16 octets UTF-8 exigés; viser au moins 20 caractères. La phrase n'est pas affichée et n'est pas enregistrée par l'outil. Elle est transmise à OpenSSL par son entrée standard, jamais dans la commande ni une variable d'environnement.
 
 Conserver la phrase dans un gestionnaire de mots de passe. Elle protège la clé d'autorité et ne doit être ni le mot de passe Wi-Fi ni un secret partagé avec le contrôleur.
 
@@ -81,7 +81,7 @@ L'outil vérifie les certificats, leurs usages et leur période de validité, l'
 
 Il reste à mettre en place et tester :
 
-1. Le service HTTPS du Pi avec certificat client obligatoire, contrôle des empreintes et droits par porte.
+1. Déployer et valider le [service HTTPS du Pi](journal-https.md), qui exige le certificat client et contrôle les empreintes et droits par porte.
 2. Le transfert des seuls fichiers serveur au Pi par SSH authentifié, avec permissions adaptées au service.
 3. Une horloge correcte sur l'ESP32 pour vérifier les dates des certificats, même après coupure d'alimentation.
 4. Le client HTTPS qui vérifie la chaîne et l'adresse du Pi; aucune option de désactivation de ces vérifications ne doit être activée.
@@ -91,3 +91,4 @@ Il reste à mettre en place et tester :
 Une clé embarquée dans un micrologiciel peut être extraite si l'équipement ou le binaire est compromis. Aucune protection par chiffrement de flash, secure boot ou composant sécurisé n'est revendiquée à cette étape.
 
 Références : [OpenSSL — création des clés](https://docs.openssl.org/3.5/man1/openssl-genpkey/), [certificats X.509](https://docs.openssl.org/3.5/man1/openssl-x509/), [extensions et usages](https://docs.openssl.org/3.5/man5/x509v3_config/).
+

@@ -1,6 +1,6 @@
-# Journal local isole; aucune dependance Python externe.
+# Journal local et reception HTTPS; paquets suivis par Debian trixie.
 FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y --no-install-recommends python3 \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-aiohttp openssl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --create-home journal \
     && mkdir -p /donnees \
@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 \
 ENV PYTHONDONTWRITEBYTECODE=1
 COPY serveur-local/journal-evenements.py /usr/local/bin/journal-evenements.py
 COPY serveur-local/tests/test_journal_evenements.py /usr/local/share/controle-acces/tests/test_journal_evenements.py
+COPY serveur-local/journal-evenements.py serveur-local/journal-https.py /opt/controle-acces/serveur-local/
+COPY serveur-local/tests/test_journal_https.py /opt/controle-acces/serveur-local/tests/
+COPY scripts/preparer-certificats-journal.py /opt/controle-acces/scripts/
 USER 10001:10001
 ENTRYPOINT ["python3", "-B", "/usr/local/bin/journal-evenements.py"]
 CMD ["lire"]
+

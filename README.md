@@ -10,7 +10,7 @@ Projet étudiant de simulation d'un **système de contrôle d'accès physique di
 | --- | --- | --- |
 | **Serveur central** | Gestion des données fictives, des autorisations et de leur exportation | Ordinateur Linux, PostgreSQL et PostgREST dans Docker Compose |
 | **Serveur local** | Conservation d'un cache d'autorisations, synchronisation et vérifications locales | Raspberry Pi, SQLite, synchronisation SSH restreinte et minuteurs systemd |
-| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; LCD et Wi-Fi validés, simulation de sortie par BOOT à valider |
+| **Microcontrôleur de démonstration** | Interface d'affichage et expérimentation des communications avec le serveur local | Waveshare ESP32-C6-LCD-1.47; LCD et Wi-Fi validés, simulation de sortie par BOOT validée |
 | **Entrées/sorties de porte** | Lecture d'identifiant, détection d'état et commande d'un actionneur de démonstration | Étape future; éventuellement un second ESP32 sans écran |
 
 La **décision d'autorisation** doit provenir du serveur local et de son cache; l'ESP32 ne doit pas devenir une copie autonome de la base d'autorisations. Une première interface HTTP/JSON sur le réseau local est envisagée, mais n'est **pas encore implémentée**. Voir [la conception du contrôleur ESP32](documentation/controleur-esp32.md).
@@ -28,7 +28,7 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 | Ordinateur central | **HP EliteBook 840 G6**, architecture x86-64 | Hébergement du serveur central et environnement de développement | Utilisé |
 | Serveur local | **Raspberry Pi 4**, architecture ARM64 | Cache local, synchronisation et futurs échanges IP avec le contrôleur | Utilisé |
 | Carte de prototypage | **Waveshare ESP32-C6-LCD-1.47**, version standard, sans connecteurs à broches présoudés | Premiers essais d'interface et de communication | Affichage LCD autonome validé |
-| Réseau | Réseau IP local entre le central et le Raspberry Pi; Wi-Fi 2,4 GHz prévu pour l'ESP32 | Communication entre les niveaux | Partie central ↔ Pi utilisée; liaison ESP32 à développer |
+| Réseau | Réseau IP local entre le central et le Raspberry Pi; Wi-Fi 2,4 GHz prévu pour l'ESP32 | Communication entre les niveaux | Central ↔ Pi et Wi-Fi ESP32 ↔ Pi validés; journal applicatif ESP32 à développer |
 
 **Détails à relever pour une reproduction stricte :** capacité RAM et révision du Raspberry Pi 4, révision matérielle de la carte Waveshare (si indiquée), versions du micrologiciel ESP32 et références des futurs périphériques. Ces valeurs ne sont pas inventées lorsqu'elles n'ont pas encore été vérifiées.
 
@@ -43,7 +43,7 @@ Les équipements ci-dessous constituent la **configuration effectivement retenue
 - **Connexion et alimentation :** port USB-C, utilisable pour la programmation et l'alimentation de la carte.
 - **Périphériques intégrés :** emplacement microSD/TF, DEL RGB, boutons `BOOT` et `RST`.
 - **Entrées/sorties :** broches GPIO accessibles sur la carte; l'écran emploie notamment **GPIO6/7** (SPI), **GPIO14/15** (CS/DC) et **GPIO21/22** (RST/rétroéclairage). Le lecteur microSD partage GPIO6/7 et utilise GPIO4 (CS) et GPIO5 (MISO); la DEL RGB utilise GPIO8. Vérifier les fonctions et conflits de brochage avant d'ajouter des périphériques.
-- **État du projet :** test LCD compilé, téléversé et validé après coupure d’alimentation. Affichage à 50 % de luminosité, connexion Wi-Fi et reconnexion automatique validés. Simulation de sortie manuelle par BOOT ajoutée, à valider sur la carte; microSD, LED RGB et échanges applicatifs Raspberry Pi restent à tester ou à développer.
+- **État du projet :** test LCD compilé, téléversé et validé après coupure d’alimentation. Affichage à 50 % de luminosité, connexion Wi-Fi et reconnexion automatique validés. Simulation de sortie manuelle par BOOT validée; microSD, LED RGB et échanges applicatifs Raspberry Pi restent à tester ou à développer.
 
 Documentation constructeur : [ESP32-C6-LCD-1.47 — Waveshare](https://docs.waveshare.com/ESP32-C6-LCD-1.47). Le schéma et le brochage du constructeur doivent être consultés avant tout raccordement. Waveshare recommande de **limiter le rétroéclairage à 50 %** pour éviter une surchauffe de l'écran.
 
@@ -96,6 +96,7 @@ Le port de PostgREST reste lié à `127.0.0.1:3000` sur l'ordinateur central; il
 - **SQLite 3** (bibliothèque `libsqlite3`) : stockage des autorisations sur le serveur local.
 - **Compilateur C++ compatible C++20, CMake et make** : compilation des programmes du serveur local.
 - **Python 3** : traitements d'importation et de surveillance à l'intérieur des conteneurs.
+- **aiohttp et OpenSSL**, paquets Debian de l'image du journal : réception HTTPS avec authentification mutuelle et tests cryptographiques.
 
 Les outils de compilation et les bibliothèques sont installés **dans les images Docker** par [`docker/Dockerfile.local`](docker/Dockerfile.local) : il n'est pas nécessaire de les installer séparément sur l'hôte pour suivre la procédure normale.
 
@@ -111,7 +112,7 @@ Le programme de test LCD est situé dans `controleur-esp32/`. Il se compile ind�
 - **Pilote ST7789 et adaptation LVGL issus de l’exemple Waveshare**, avec initialisation SPI autonome et rétroéclairage limité à 50 %.
 - **Interface USB Serial/JTAG** pour le téléversement et le diagnostic.
 
-La compilation, le téléversement, l’affichage et la connexion Wi-Fi avec reconnexion automatique ont été validés. Le programme ajoute une [simulation de sortie manuelle par BOOT](documentation/sortie-manuelle-esp32.md), à valider sur la carte. Les échanges applicatifs avec le Raspberry Pi restent à implémenter.
+La compilation, le téléversement, l’affichage et la connexion Wi-Fi avec reconnexion automatique ont été validés. Le programme ajoute une [simulation de sortie manuelle par BOOT](documentation/sortie-manuelle-esp32.md), validée sur la carte. Les échanges applicatifs avec le Raspberry Pi restent à implémenter.
 
 Voir le [guide d’installation et du premier test LCD](documentation/installation-esp32.md).
 
@@ -173,4 +174,5 @@ Pour approfondir : [principes de sécurité](documentation/securite.md), [concep
 
 ## Journal d'événements — développement
 
-La branche `feature/journal-evenements-securise` ajoute un [journal SQLite local](documentation/journal-evenements.md), séparé des caches d'autorisations et exécuté sans réseau dans un conteneur dédié. Seuls des événements fictifs marqués `TEST_LOCAL` sont acceptés à cette étape. L'envoi depuis l'ESP32 et son transport authentifié restent à implémenter.
+La branche `feature/journal-evenements-securise` ajoute un [journal SQLite local](documentation/journal-evenements.md), séparé des caches d'autorisations, et un [service HTTPS mTLS](documentation/journal-https.md) optionnel. Le CLI sans réseau crée des essais `TEST_LOCAL`; le service HTTPS vérifie le certificat, son empreinte et les droits sur la porte, puis crée des événements `MTLS`. Les 15 tests HTTPS passent sur le poste de préparation; le déploiement ARM64 reste à valider. L'envoi depuis l'ESP32 reste à implémenter.
+

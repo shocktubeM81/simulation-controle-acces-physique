@@ -98,20 +98,40 @@ def _verifier_schema(connexion: sqlite3.Connection, creation: bool) -> None:
                 version INTEGER NOT NULL CHECK(version = 1),
                 porte TEXT NOT NULL CHECK(length(porte) BETWEEN 1 AND 32),
                 type TEXT NOT NULL CHECK(type = 'SORTIE_MANUELLE_SIMULEE'),
-                origine TEXT NOT NULL CHECK(origine = 'TEST_LOCAL'),
+                origine TEXT NOT NULL CHECK(origine IN ('TEST_LOCAL', 'MTLS')),
                 recu_a_utc TEXT NOT NULL,
                 UNIQUE(controleur, id_evenement)
             ) STRICT
         """)
-        connexion.execute("PRAGMA user_version = 1")
+        connexion.execute("PRAGMA user_version = 2")
         return
-    if version != 1 or tables != {"evenements"}:
+    if version not in (1, 2) or tables != {"evenements"}:
         raise BaseIncompatible("Base absente, incompatible ou non reservee au journal.")
     colonnes = tuple(
         ligne[1] for ligne in connexion.execute("PRAGMA table_info(evenements)")
     )
     if colonnes != COLONNES:
         raise BaseIncompatible("Schema du journal incompatible.")
+    if version == 1 and creation:
+        # Migration atomique dans la transaction de l'appelant.
+        connexion.execute("ALTER TABLE evenements RENAME TO evenements_v1")
+        connexion.execute("""
+            CREATE TABLE evenements (
+                numero INTEGER PRIMARY KEY,
+                controleur TEXT NOT NULL CHECK(length(controleur) BETWEEN 1 AND 32),
+                id_evenement TEXT NOT NULL CHECK(length(id_evenement) = 36),
+                version INTEGER NOT NULL CHECK(version = 1),
+                porte TEXT NOT NULL CHECK(length(porte) BETWEEN 1 AND 32),
+                type TEXT NOT NULL CHECK(type = 'SORTIE_MANUELLE_SIMULEE'),
+                origine TEXT NOT NULL CHECK(origine IN ('TEST_LOCAL', 'MTLS')),
+                recu_a_utc TEXT NOT NULL,
+                UNIQUE(controleur, id_evenement)
+            ) STRICT
+        """)
+        connexion.execute("INSERT INTO evenements SELECT * FROM evenements_v1")
+        connexion.execute("DROP TABLE evenements_v1")
+        connexion.execute("PRAGMA user_version = 2")
+
 
 
 @contextmanager
@@ -158,21 +178,22 @@ def initialiser(base) -> None:
         pass
 
 
-def enregistrer(base, controleur: str, contenu: bytes) -> dict:
-    # Ce contexte est fourni par l'operateur local, jamais extrait du message.
-    # Un futur transport devra le fournir APRES authentification du controleur.
+def enregistrer(base, controleur: str, contenu: bytes, *, origine="TEST_LOCAL") -> dict:
+    # Contexte fourni par le CLI local ou le transport APRES authentification.
+    if origine not in ("TEST_LOCAL", "MTLS"):
+        raise EvenementInvalide("Origine invalide.")
     if not isinstance(controleur, str) or IDENTIFIANT.fullmatch(controleur) is None:
         raise EvenementInvalide("Identifiant de controleur invalide.")
     evenement = valider(contenu)
     with _connexion(base, ecriture=True) as connexion:
         precedent = connexion.execute(
-            "SELECT version, porte, type, recu_a_utc FROM evenements "
+            "SELECT version, porte, type, origine, recu_a_utc FROM evenements "
             "WHERE controleur = ? AND id_evenement = ?",
             (controleur, evenement["id_evenement"]),
         ).fetchone()
         if precedent is not None:
-            if tuple(precedent)[:3] != (
-                evenement["version"], evenement["porte"], evenement["type"]
+            if tuple(precedent)[:4] != (
+                evenement["version"], evenement["porte"], evenement["type"], origine
             ):
                 raise ConflitEvenement("Identifiant deja utilise pour un autre contenu.")
             statut = "DEJA_PRESENT"
@@ -185,10 +206,10 @@ def enregistrer(base, controleur: str, contenu: bytes) -> dict:
             connexion.execute(
                 "INSERT INTO evenements "
                 "(controleur, id_evenement, version, porte, type, origine, recu_a_utc) "
-                "VALUES (?, ?, ?, ?, ?, 'TEST_LOCAL', ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     controleur, evenement["id_evenement"], evenement["version"],
-                    evenement["porte"], evenement["type"], recu_a,
+                    evenement["porte"], evenement["type"], origine, recu_a,
                 ),
             )
             statut = "ENREGISTRE"
@@ -253,3 +274,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

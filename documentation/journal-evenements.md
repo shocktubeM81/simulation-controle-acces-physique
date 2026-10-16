@@ -4,9 +4,9 @@
 
 Cette première étape fournit un journal SQLite local et des tests reproductibles. Les 14 tests du module passent avec Python 3.12.14 et SQLite 3.53.1 sur le poste de préparation; la construction Docker ARM64, les 14 tests sur le Pi, la persistance entre conteneurs et le dédoublonnage ont également été validés sur le banc.
 
-Le bouton BOOT n'envoie pas encore d'événement. Aucun serveur HTTP, port d'écoute ou accès direct ESP32 vers SQLite n'est ajouté. Le conteneur de journal s'exécute avec `network_mode: none`.
+Le bouton BOOT n'envoie pas encore d'événement. Le conteneur CLI `journal-evenements` s'exécute avec `network_mode: none`. Le [service HTTPS mTLS optionnel](journal-https.md) fournit une réception distincte, avec contrôle des certificats et des portes; il ne donne aucun accès direct ESP32 à SQLite.
 
-Les enregistrements de cette étape portent toujours `origine = TEST_LOCAL`. Ils ne prouvent pas qu'un contrôleur a effectivement produit l'événement.
+Les enregistrements des commandes locales ci-dessous portent `origine = TEST_LOCAL`. Le service authentifié fixe `origine = MTLS`. Un client de test possédant la clé du contrôleur peut aussi produire une entrée MTLS : cette origine ne prouve ni un appui physique ni un passage.
 
 ## Ce qui est enregistré
 
@@ -25,9 +25,9 @@ Le message contient exactement :
 
 - `id_evenement` : UUID v4 canonique, conservé lors d'un renvoi.
 - `porte` : identifiant technique de 1 à 32 caractères, lettres majuscules, chiffres, tirets et caractères de soulignement.
-- `controleur` : contexte fourni par l'opérateur local, hors du JSON. Dans le futur transport, il devra provenir de l'authentification de l'équipement et de ses droits, jamais d'une déclaration libre du message.
+- `controleur` : contexte fourni par l'opérateur local, hors du JSON. Dans le service HTTPS, il provient de l'empreinte authentifiée du certificat et de la liste privée des droits, jamais d'une déclaration libre du message.
 - `recu_a_utc` : date de réception attribuée par le Pi lors de l'insertion; ce n'est pas l'heure garantie de l'appui.
-- `origine` : `TEST_LOCAL`, fixé par le programme.
+- `origine` : `TEST_LOCAL` pour le CLI, `MTLS` pour le service HTTPS, fixé par le programme.
 - `numero` : ordre local d'insertion.
 
 Tout champ supplémentaire, notamment un nom, un mot de passe, un contrôleur ou une date déclarés dans le JSON, est refusé. Le message est limité à 1 024 octets. Les clés JSON répétées et les versions non prises en charge sont refusées.
@@ -40,10 +40,10 @@ Tout champ supplémentaire, notamment un nom, un mot de passe, un contrôleur ou
 - Nouveau fichier de base créé avec permissions Unix `0600`; répertoire de données de l'image en `0700`.
 - Requêtes SQL paramétrées et transaction d'écriture; accusé de réception produit après validation du commit.
 - Même couple contrôleur/UUID et même contenu : une seule ligne, date d'origine conservée, réponse `DEJA_PRESENT`.
-- Même couple contrôleur/UUID mais autre contenu : erreur `CONFLIT_EVENEMENT`, sans modification de la ligne.
+- Même couple contrôleur/UUID mais autre contenu ou autre origine : erreur `CONFLIT_EVENEMENT`, sans modification de la ligne.
 - Le module ne propose ni modification ni suppression d'événement.
 
-Cette base n'est ni chiffrée au repos ni inviolable. Un administrateur du Pi ou de Docker peut lire, modifier ou supprimer ses fichiers. Aucun mécanisme de rétention, sauvegarde/restauration, limitation de débit ou audit des consultations n'est encore ajouté. Ne pas y introduire de données personnelles réelles à cette étape.
+Cette base n'est ni chiffrée au repos ni inviolable. Un administrateur du Pi ou de Docker peut lire, modifier ou supprimer ses fichiers. Aucune politique complète de rétention, sauvegarde/restauration, limitation de débit ou audit des consultations n'est encore ajoutée. Le guide HTTPS fournit une copie SQLite avant migration, sans garantie de sauvegarde hors du support. Ne pas y introduire de données personnelles réelles à cette étape.
 
 L'accusé de réception SQLite ne garantit pas la conservation après une défaillance du support de stockage. Le stockage et les sauvegardes devront être vérifiés avant tout usage sensible.
 
@@ -119,12 +119,12 @@ Pour `journal-evenements`, vérifier `network_mode: none`, l'absence de ports pu
 
 ## 5. Étape suivante : transport authentifié
 
-La [préparation des certificats](certificats-journal.md) est disponible. Elle n'ouvre pas de service et ne relie pas encore le bouton BOOT au journal.
+La [préparation des certificats](certificats-journal.md) et le [guide d'installation HTTPS](journal-https.md) sont disponibles. Les 15 tests HTTPS doivent passer dans l'image du Pi avant déploiement. Le service vérifie le certificat client, son empreinte et la porte, puis confirme les écritures après commit. Il migre le schéma v1 vers v2 sans effacer les entrées locales; voir la sauvegarde préalable dans le guide. Le bouton BOOT n'est pas encore relié au journal.
 
 Avant tout envoi depuis l'ESP32 :
 
-1. Ajouter un canal TLS avec vérification du serveur et authentification propre à chaque contrôleur.
-2. Associer le contrôleur authentifié à ses portes autorisées côté Pi.
+1. Déployer le service mTLS testé, puis ajouter son client à l'ESP32 avec vérification du serveur et horloge correcte.
+2. Vérifier sur le Pi la liste d'empreintes et de portes utilisée par le service.
 3. Générer les secrets localement, prévoir révocation et renouvellement, et les conserver hors de Git et des journaux.
 4. Définir les accusés de réception, délais, retransmissions et limites de file; ne jamais affirmer qu'un événement est enregistré avant son accusé.
 5. Tester le rejet des clients inconnus, certificats invalides, messages modifiés et doublons.
@@ -154,3 +154,4 @@ sudo docker compose -f compose.local.yaml run --rm -T --entrypoint cat journal-e
 Valeur attendue : `134217728` octets (128 Mio).
 
 Référence : [explication du mainteneur Raspberry Pi](https://github.com/raspberrypi/linux/issues/6980).
+
