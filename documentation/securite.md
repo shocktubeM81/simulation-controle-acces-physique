@@ -56,3 +56,9 @@ L'[outil de préparation des certificats](certificats-journal.md) sépare les id
 
 Le service HTTPS marque les événements authentifiés `MTLS`; le CLI local conserve `TEST_LOCAL`. Les tests couvrent les refus TLS, les empreintes inconnues, les portes interdites, les doublons et les erreurs de stockage. La validation Docker ARM64 sur le banc reste nécessaire. La révocation par retrait d'empreinte exige un redémarrage du service; renouvellement, horloge et retransmissions ESP32 restent à compléter. La publication Docker est limitée à `192.168.81.1:8443`; le bridge ne bloque pas les connexions sortantes.
 
+
+## Diagnostic TLS depuis le contrôleur
+
+Le [diagnostic ESP32](diagnostic-mtls-esp32.md) est activé volontairement par un fichier CMake local ignoré par Git. Il embarque l'autorité publique et l'identité client, vérifie le serveur par son SAN IP et exige les contrôles de dates. Les options de contournement TLS empêchent sa compilation. Le test attend une réponse HTTP 400 à un objet vide; il ne journalise aucune sortie BOOT. Les essais sur le matériel restent nécessaires.
+
+Le binaire, l'ELF et les assemblages de compilation contiennent la clé client et doivent rester privés. Ni chiffrement de flash ni secure boot ne sont activés par cette étape. L'heure SNTP demeure non authentifiée; elle constitue une limite de l'amorçage de confiance pour les vérifications temporelles.

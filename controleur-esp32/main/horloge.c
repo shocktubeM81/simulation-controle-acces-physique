@@ -29,6 +29,7 @@ static bool afficher(const char *nouveau, bool en_erreur)
 
 const char *horloge_texte(void) { return texte; }
 bool horloge_erreur(void) { return erreur; }
+bool horloge_disponible(void) { return recue && !erreur; }
 
 bool horloge_actualiser(bool reseau_connecte)
 {

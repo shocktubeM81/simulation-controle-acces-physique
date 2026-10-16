@@ -5,3 +5,5 @@
 /managed_components/
 /.vscode/
 /main/configuration-wifi.locale.h
+
+/main/configuration-journal.locale.cmake

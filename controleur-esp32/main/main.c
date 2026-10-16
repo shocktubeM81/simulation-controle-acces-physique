@@ -8,6 +8,7 @@
 #include "LVGL_Driver.h"
 #include "reseau.h"
 #include "horloge.h"
+#include "diagnostic-mtls.h"
 #include "sortie-manuelle.h"
 
 void app_main(void)
@@ -20,7 +21,7 @@ void app_main(void)
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
     lv_obj_t *label = lv_label_create(screen);
-    /* Garder 8 pixels de marge de chaque cote de l\'ecran de 172 pixels. */
+    /* Garder 8 pixels de marge de chaque cote de l'ecran de 172 pixels. */
     lv_obj_set_width(label, EXAMPLE_LCD_H_RES - 16);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_label_set_text(label, "PRET\nBOOT: sortie\n\nESP32-C6");
@@ -32,6 +33,7 @@ void app_main(void)
 
     sortie_manuelle_initialiser();
     reseau_initialiser();
+    diagnostic_mtls_initialiser();
     EtatReseau etat_courant = {.texte = "ESP32-C6"};
 
     while (1) {
@@ -42,6 +44,8 @@ void app_main(void)
             rafraichir = true;
         }
         rafraichir = horloge_actualiser(etat_courant.connecte) || rafraichir;
+        diagnostic_mtls_actualiser(
+            etat_courant.connecte && horloge_disponible());
         if (rafraichir) {
             const bool en_erreur = etat_courant.erreur || horloge_erreur();
             const bool sortie_active = sortie_manuelle_active();

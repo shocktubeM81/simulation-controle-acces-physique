@@ -9,3 +9,6 @@ bool horloge_actualiser(bool reseau_connecte);
 const char *horloge_texte(void);
 bool horloge_erreur(void);
 
+
+/* Date SNTP recue et non perimee; ce n'est pas une heure authentifiee. */
+bool horloge_disponible(void);

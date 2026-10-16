@@ -14,3 +14,8 @@ build-*
 **/build
 **/build-*
 **/*.log
+
+**/configuration-journal.locale.cmake
+**/*.pem
+**/*.bin
+**/*.elf
