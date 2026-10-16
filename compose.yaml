@@ -44,12 +44,15 @@ services:
       - "127.0.0.1:3000:3000"
     networks:
       - interne
+      - acces_local
     security_opt:
       - no-new-privileges:true
 
 networks:
   interne:
     internal: true
+  acces_local:
+    driver: bridge
 
 volumes:
   donnees_postgresql:
