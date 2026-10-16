@@ -8,6 +8,10 @@ Ce projet vise à concevoir, implémenter et expérimenter une architecture dist
 
 La simulation repose sur un serveur central, un serveur local et un contrôleur électronique de porte. Elle permet d'étudier les communications réseau, la gestion des autorisations, la synchronisation des données et le comportement du système dans différents scénarios de fonctionnement.
 
+## Installation
+
+Consulter le [guide d'installation](INSTALLATION.md) pour préparer l'environnement, créer la base de données fictive PostgreSQL et exécuter les premiers essais C++.
+
 ## Objectifs
 
 - Concevoir une architecture modulaire et reproductible.
