@@ -20,6 +20,9 @@ void app_main(void)
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
     lv_obj_t *label = lv_label_create(screen);
+    /* Garder 8 pixels de marge de chaque cote de l\'ecran de 172 pixels. */
+    lv_obj_set_width(label, EXAMPLE_LCD_H_RES - 16);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_label_set_text(label, "PRET\nBOOT: sortie\n\nESP32-C6");
     lv_obj_set_style_text_color(label, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);

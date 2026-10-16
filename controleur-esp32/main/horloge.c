@@ -69,7 +69,7 @@ bool horloge_actualiser(bool reseau_connecte)
             return afficher("Heure: erreur SNTP", true);
         }
         ESP_LOGI(TAG, "Attente SNTP depuis 192.168.81.1; heure non authentifiee");
-        return afficher("Heure: synchronisation", false);
+        return afficher("Heure: synchro...", false);
     }
 
     if (!initialise || !demarre) {
@@ -95,14 +95,14 @@ bool horloge_actualiser(bool reseau_connecte)
         ESP_LOGI(TAG, "Heure recue du Pi (SNTP): %s", date);
         recue = true;
         reception_depuis = maintenant;
-        return afficher("Heure recue du Pi\nSNTP non authentifie", false);
+        return afficher("Heure recue du Pi\nSNTP non\nauthentifie", false);
     }
     if (resultat != ESP_ERR_TIMEOUT) {
         return afficher("Heure: erreur SNTP", true);
     }
     if ((!recue && maintenant - attente_depuis >= 30000000) ||
         (recue && maintenant - reception_depuis >= 21600000000LL)) {
-        return afficher("Heure indisponible\nNouvel essai automatique", true);
+        return afficher("Heure indisponible\nNouvel essai auto", true);
     }
     return false;
 }

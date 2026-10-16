@@ -117,6 +117,10 @@ HORLOGE: Heure recue du Pi (SNTP): AAAA-MM-JJTHH:MM:SSZ
 Comparer la date UTC à `date -u` sur le Pi. Le LCD affiche
 `Heure recue du Pi / SNTP non authentifie`. Il n'affiche pas une horloge animée.
 
+Le texte occupe 156 pixels sur les 172 pixels de largeur, avec huit pixels de
+marge de chaque côté et retour automatique à la ligne. Vérifier que les messages
+d'attente, d'erreur et de sortie BOOT restent entièrement visibles.
+
 Tester le bouton BOOT : la simulation de sortie doit toujours fonctionner.
 Le vert indique la sortie autorisée simulée, le repos reste bleu, l'orange
 signale une erreur réseau ou d'heure.
