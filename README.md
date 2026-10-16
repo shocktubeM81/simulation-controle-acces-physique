@@ -12,7 +12,7 @@ Les scripts TCP et le cache SQLite statique servent encore aux diagnostics péda
 
 ## Installation
 
-Suivre les quelques commandes dans [INSTALLATION.md](INSTALLATION.md). Pour les prérequis matériels et logiciels ainsi que les commandes exactes, consulter ce guide. La [structure C++ et les conventions de commentaires](documentation/conventions-code.md) sont documentées séparément.
+Utiliser `scripts/installer-central.sh` sur l'ordinateur et `scripts/installer-pi.sh` sur le Raspberry Pi. Les tests sont regroupés dans `scripts/verifier.sh`. Suivre les étapes et exigences dans [INSTALLATION.md](INSTALLATION.md). Pour les prérequis matériels et logiciels ainsi que les commandes exactes, consulter ce guide. La [structure C++ et les conventions de commentaires](documentation/conventions-code.md) sont documentées séparément.
 
 ## Principes
 

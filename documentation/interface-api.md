@@ -5,9 +5,9 @@ Le serveur central est constitué de deux conteneurs Docker Compose : PostgreSQL
 Depuis la racine du dépôt, sur l'ordinateur :
 
 ```bash
-bash scripts/installer-serveur-central.sh
+bash scripts/installer-central.sh
 docker compose ps
-bash scripts/verifier-installation.sh
+bash scripts/verifier.sh central
 ```
 
 Les fichiers `base-de-donnees/structure.sql` et `donnees-fictives.sql` initialisent le volume PostgreSQL lors de sa première création. Ensuite, à chaque installation, le script attend que PostgreSQL soit disponible et applique `docker/configurer-roles-api.sql` et `base-de-donnees/interface-api.sql`. Cette deuxième phase est relançable, notamment après une interruption. Les fichiers de configuration SQL sont montés par dossiers plutôt qu'individuellement : les modifications récupérées par Git restent visibles dans le conteneur. Les données fictives existantes sont conservées.

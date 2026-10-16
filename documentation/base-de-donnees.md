@@ -13,7 +13,7 @@ docker compose exec base-de-donnees psql -U postgres -d controle_acces_simulatio
 Pour vérifier les décisions :
 
 ```bash
-bash scripts/verifier-installation.sh
+bash scripts/verifier.sh central
 ```
 
 Les scripts SQL sont appliqués **uniquement à la création initiale du volume**. Une modification du schéma nécessitera des migrations explicites; ne pas supprimer le volume pour effectuer une mise à jour normale.

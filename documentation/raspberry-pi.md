@@ -1,45 +1,41 @@
 # Raspberry Pi — serveur local
 
-Le Raspberry Pi doit disposer de Debian 13 ARM64 et d'une connexion réseau vers l'ordinateur. Le script de préparation installe Docker Engine et Compose depuis le dépôt officiel (avec `sudo`) si nécessaire. Pour un autre système, suivre la documentation Docker applicable.
+Le Raspberry Pi 4 exécute le cache SQLite, un moteur C++ de décision et les services de synchronisation et de surveillance. Les conteneurs sont **éphémères** : les données persistent dans un volume Docker.
 
-Le dépôt ne dépend pas du nom de machine ni de l'utilisateur Linux.
+## Prérequis
 
-```bash
-git clone https://github.com/shocktubeM81/simulation-controle-acces-physique.git
-cd simulation-controle-acces-physique
-bash scripts/preparer-raspberry-pi.sh
-bash scripts/installer-serveur-local.sh
-```
+- Raspberry Pi 4 avec alimentation et carte de stockage, Debian 13 ARM64 (`trixie`).
+- Accès réseau au serveur central, Git, Python 3, OpenSSH Client et sudo.
+- Docker et Compose sont préparés par l'installateur si absents.
 
-Le fichier `compose.local.yaml` construit les exécutables C++ de diagnostic et SQLite dans des conteneurs Debian ARM64. Les outils s'exécutent dans des conteneurs éphémères. Après configuration SSH, deux minuteurs systemd lancent périodiquement la synchronisation et la surveillance.
+Les commandes complètes de déploiement initial, y compris l'échange de clés SSH, sont regroupées dans [INSTALLATION.md](../INSTALLATION.md).
 
-Pour tester le réseau Ethernet, lancer d'abord le serveur TCP de diagnostic sur l'ordinateur, puis :
+## Installation et mise à jour
 
 ```bash
-sudo docker compose -f compose.local.yaml run --rm diagnostic-reseau ADRESSE_IPV4_ORDINATEUR 5050
+bash scripts/installer-pi.sh
+bash scripts/verifier.sh pi
 ```
 
-Les deux appareils doivent appartenir à un réseau autorisé à échanger des connexions TCP. Les adresses sont choisies au moment de l'essai, sans les fixer dans les fichiers source.
+Sur une machine neuve, les minuteurs doivent être configurés et activés **après** une synchronisation SSH manuelle validée, conformément au guide principal.
 
-## Cache SQLite local (prototype)
+## Modes de décision
 
-Après mise à jour du dépôt :
+- `cache-sqlite verifier CODE PORTE` : données fictives **statiques** (`autorisations.sqlite3`), réservées aux diagnostics.
+- `cache-sqlite verifier-sync CODE PORTE` : données du serveur central (`autorisations-synchronisees.sqlite3`), avec vérification de leur fraîcheur et des dates d'autorisation.
+
+L'accès au cache synchronisé est limité à l'exécution locale : le conteneur ne possède pas d'interface réseau. La récupération des instantanés se fait depuis l'hôte par une clé SSH dédiée et un compte à commande forcée.
+
+## Diagnostics facultatifs
 
 ```bash
-bash scripts/installer-serveur-local.sh
-bash scripts/tester-sqlite-local.sh
+bash scripts/verifier.sh seuils
+bash scripts/verifier.sh cache-statique
+bash scripts/verifier.sh reseau IP_CENTRAL 5050
 ```
 
-Le test initialise un volume Docker nommé `controle-acces-local_donnees_locales`, puis lance **de nouveaux conteneurs éphémères** pour vérifier les décisions `FICTIF-0001` et `FICTIF-0003` à la porte `Laboratoire`. Il vérifie ainsi la persistance entre les conteneurs, mais **pas encore** après un redémarrage matériel.
+Le test du cache statique n'efface ni ne remplace le cache synchronisé. Le diagnostic TCP est non authentifié : il ne doit pas servir à actionner une porte.
 
-Pour vérifier manuellement :
+## Limites
 
-```bash
-sudo docker compose -f compose.local.yaml run --rm cache-sqlite initialiser
-sudo docker compose -f compose.local.yaml run --rm cache-sqlite verifier FICTIF-0001 Laboratoire
-sudo docker compose -f compose.local.yaml run --rm cache-sqlite verifier FICTIF-0003 Laboratoire
-```
-
-Le conteneur SQLite fonctionne **sans réseau** (`network_mode: none`), sans privilèges élevés et avec un système de fichiers en lecture seule, à l'exception du volume des données. Il ne contient que des autorisations **fictives et statiques**, dont les identifiants sont volontairement publiés dans le dépôt. Cette **base statique de diagnostic** ne se synchronise pas. La base `autorisations-synchronisees.sqlite3`, séparée, est alimentée par SSH restreint, avec vérification de fraîcheur et des dates d'autorisation.
-
-**Attention :** ne pas utiliser ce prototype pour protéger une porte réelle : une autorisation révoquée au central resterait valide dans ce cache statique **de diagnostic**. Les décisions du cache synchronisé sont évaluées séparément avec `verifier-sync`. Une stratégie explicite de validité et de révocation, ainsi que l'authentification et le chiffrement des communications, seront nécessaires avant une mise en service.
+Le prototype utilise Docker avec des permissions d'administration via systemd; les unités et fichiers de déploiement doivent être durcis pour une véritable installation. La gestion de portes sensibles, l'ESP32, l'audit avancé et les alertes externes restent à développer.

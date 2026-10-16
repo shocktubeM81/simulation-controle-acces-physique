@@ -71,7 +71,7 @@ Le calcul de fraîcheur doit gérer les redémarrages et les changements d'horlo
 Le Raspberry Pi peut demander ponctuellement un instantané fictif par SSH :
 
 ```bash
-bash scripts/synchroniser-serveur-local.sh controle-export@ORDINATEUR ~/.ssh/id_ed25519_controle_sync
+sudo systemctl start controle-acces-synchronisation.service
 ```
 
 La commande SSH s'exécute sur l'hôte Raspberry Pi et utilise sa configuration
@@ -83,7 +83,9 @@ mais cette première version dépend de la synchronisation des horloges système
 
 Le compte distant `controle-export` exécute exclusivement la commande d'export SSH. L'API exporte encore des données fictives sous un rôle anonyme accessible seulement sur boucle locale. Pour la suite : autorisations fines par bâtiment, intégrité des instantanés, versions monotones transactionnelles et audit.
 
-Le cache synchronisé est enregistré dans `autorisations-synchronisees.sqlite3`, distinct du fichier de fixtures `autorisations.sqlite3` ; les tests initiaux ne peuvent donc pas réintroduire des droits révoqués dans le cache synchronisé.\n\nLa commande `verifier-sync` du prototype C++ refuse au-delà de 3600 secondes,
+Le cache synchronisé est enregistré dans `autorisations-synchronisees.sqlite3`, distinct du fichier de fixtures `autorisations.sqlite3`; les tests initiaux ne peuvent donc pas réintroduire des droits révoqués dans le cache synchronisé.
+
+La commande `verifier-sync` du prototype C++ refuse au-delà de 3600 secondes,
 sans instantané ou si l'horloge recule. La valeur est pour l'instant codée dans
 le prototype en C++ et **doit encore être pilotée à partir du fichier JSON**
 avant de qualifier le paramétrage de centralisé.
@@ -96,14 +98,14 @@ séparées des autorisations validées via `verifier-sync`.
 ## Automatisation avec systemd et clé restreinte (octobre 2026)
 
 Ce laboratoire fournit :
-- `scripts/preparer-cle-synchronisation.sh` : une **nouvelle** clé SSH sans
+- `scripts/installer-pi.sh` : une **nouvelle** clé SSH sans
   phrase secrète, pour le service seulement; les permissions locales doivent
   rester strictes et la clé ne doit jamais être publiée.
-- `scripts/installer-acces-export-central.sh` : sur l'ordinateur,
+- `scripts/installer-central.sh export` : sur l'ordinateur,
   compte `controle-export` et `authorized_keys` avec `restrict,command=...`.
   OpenSSH interdit alors shell interactif, forwarding et commandes arbitraires
   **pour cette clé**. Le compte ne doit pas recevoir d'autres clés.
-- `scripts/installer-timer-raspberry-pi.sh` : installe les unités sans les
+- `scripts/installer-pi.sh configurer` : installe les unités sans les
   activer; une synchronisation valide est obligatoire avant activation.
 - `systemd/controle-acces-synchronisation.timer` : lancement après démarrage
   puis cinq minutes après la fin du cycle précédent. Il ne garantit pas une
@@ -131,12 +133,11 @@ pour les données réelles.
 Sur le Raspberry Pi, après mise à jour du dépôt, la commande habituelle :
 
 ```bash
-bash scripts/installer-serveur-local.sh
+bash scripts/installer-pi.sh
 ```
 
-reconstruit l'image ARM64, effectue les tests simulés des seuils,
-installe `controle-acces-surveillance.service` et
-`controle-acces-surveillance.timer`. Si le minuteur de synchronisation
+reconstruit l'image ARM64, effectue les tests simulés des seuils et
+met à jour les deux services périodiques. Si le minuteur de synchronisation
 existe et est actif, le nouveau minuteur est automatiquement activé.
 
 Le contrôle de fraîcheur s'exécute chaque minute et lit le volume SQLite
@@ -145,7 +146,7 @@ l'heure système. Il n'interrompt pas les tentatives de synchronisation.
 Pour vérifier les seuils sans panne réelle :
 
 ```bash
-bash scripts/tester-surveillance-cache.sh
+bash scripts/verifier.sh seuils
 ```
 
 Afficher les états récents :
