@@ -30,6 +30,11 @@ void app_main(void)
     while (1) {
         EtatReseau etat;
         if (reseau_lire_etat(&etat)) {
+            /* Couvrir tout l'ecran rend la liaison visible a distance. */
+            lv_obj_set_style_bg_color(
+                screen, lv_color_hex(etat.connecte ? 0x006B32 : 0xF4A300), 0);
+            lv_obj_set_style_text_color(
+                label, lv_color_hex(etat.connecte ? 0xFFFFFF : 0x101010), 0);
             lv_label_set_text_fmt(label, "LCD OK\n%s", etat.texte);
             lv_obj_center(label);
         }

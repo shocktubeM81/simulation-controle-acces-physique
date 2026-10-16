@@ -1,8 +1,16 @@
 # Test Wi-Fi dedie Raspberry Pi / ESP32
 
-**Statut : connexion Wi-Fi, affichage LCD et ping valides sur le banc; nouvelle reconnexion automatique temporisee a compiler et valider sur le materiel.**
+**Statut : connexion Wi-Fi, ping et reconnexion automatique sans RESET valides sur le banc; nouvelle signalisation couleur a compiler et valider sur le materiel.**
 
 Ce test ajoute uniquement la connexion Wi-Fi et son etat sur le LCD. Il n'implemente pas le service de decision, l'authentification applicative ou une commande de porte.
+
+## Signalisation sur le LCD
+
+- **Fond vert, texte blanc** : connexion Wi-Fi et configuration IP acquises.
+- **Fond orange, texte sombre** : connexion en cours, Wi-Fi deconnecte ou configuration locale invalide. La boucle d'affichage reste active et les reconnexions se poursuivent lorsque la configuration est valide.
+- **Fond bleu sombre** : test LCD seul, sans fichier de configuration Wi-Fi local.
+
+Le texte precise l'etat en complement de la couleur. Le vert ne garantit pas que le service applicatif du Raspberry Pi est disponible; l'orange ne signifie pas qu'un controle d'acces autonome fonctionne. Aucun mode de decision hors ligne n'est implemente.
 
 ## Configuration
 
@@ -86,7 +94,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## Validation a effectuer
 
-1. Le LCD affiche `LCD OK`, `Wi-Fi connecte` et `192.168.81.2`.
+1. Le LCD affiche `LCD OK`, `Wi-Fi connecte` et `192.168.81.2`, sur fond vert.
 2. Le terminal indique `RESEAU: Wi-Fi connecte, IP=192.168.81.2`.
 3. Depuis le Pi, verifier l'association et la liaison IP :
 
@@ -102,7 +110,7 @@ ping -c 4 192.168.81.2
 sudo nmcli connection down controle-acces-ap
 ```
 
-Attendre la detection de la coupure sur le LCD, puis laisser le reseau arrete au moins une minute. Le LCD doit afficher `Wi-Fi deconnecte / Nouvel essai: 5 s` ou `Wi-Fi connexion...`. Le moniteur doit continuer d'annoncer de nouvelles tentatives, sans demande de RESET.
+Attendre la detection de la coupure sur le LCD, puis laisser le reseau arrete au moins une minute. Le LCD doit passer a l'orange et afficher `Wi-Fi deconnecte / Nouvel essai: 5 s` ou `Wi-Fi connexion...`. Le moniteur doit continuer d'annoncer de nouvelles tentatives, sans demande de RESET.
 
 6. Reactiver le point d'acces sur le Pi :
 
@@ -110,7 +118,7 @@ Attendre la detection de la coupure sur le LCD, puis laisser le reseau arrete au
 sudo nmcli --ask connection up controle-acces-ap
 ```
 
-Attendre la confirmation d'activation. Sans appuyer sur RESET ni debrancher l'ESP32, attendre le retour de `Wi-Fi connecte / 192.168.81.2`, puis lancer sur le Pi :
+Attendre la confirmation d'activation. Sans appuyer sur RESET ni debrancher l'ESP32, attendre le retour du fond vert et de `Wi-Fi connecte / 192.168.81.2`, puis lancer sur le Pi :
 
 ```bash
 ping -c 4 192.168.81.2

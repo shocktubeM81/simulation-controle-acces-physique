@@ -4,6 +4,8 @@
 #include <stdbool.h>
 
 typedef struct {
+    /* Association et configuration IP acquises; pas un etat du service du Pi. */
+    bool connecte;
     char texte[80];
 } EtatReseau;
 

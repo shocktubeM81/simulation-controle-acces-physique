@@ -119,7 +119,7 @@ static void evenement_reseau(void *contexte, esp_event_base_t base,
         }
     } else if (base == IP_EVENT && evenement == IP_EVENT_STA_GOT_IP) {
         const ip_event_got_ip_t *adresse = donnees;
-        EtatReseau etat = {0};
+        EtatReseau etat = {.connecte = true};
         snprintf(etat.texte, sizeof(etat.texte),
                  "Wi-Fi connecte\n" IPSTR, IP2STR(&adresse->ip_info.ip));
         xQueueOverwrite(file_etats, &etat);
