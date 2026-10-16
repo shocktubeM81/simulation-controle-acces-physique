@@ -12,7 +12,7 @@ Les scripts TCP et le cache SQLite statique servent encore aux diagnostics péda
 
 ## Installation
 
-Suivre les quelques commandes dans [INSTALLATION.md](INSTALLATION.md). Les détails techniques sont regroupés dans [documentation/](documentation/).
+Suivre les quelques commandes dans [INSTALLATION.md](INSTALLATION.md). Pour les prérequis matériels et logiciels ainsi que les commandes exactes, consulter ce guide. La [structure C++ et les conventions de commentaires](documentation/conventions-code.md) sont documentées séparément.
 
 ## Principes
 
