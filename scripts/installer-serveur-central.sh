@@ -14,7 +14,7 @@ echo "Démarrage de PostgreSQL..."
 docker compose up -d --wait base-de-donnees
 
 echo "Configuration des rôles et de l'API..."
-docker compose exec -T -u 0 base-de-donnees sh /opt/laboratoire/initialiser-api.sh
+docker compose exec -T -u 0 base-de-donnees sh /opt/laboratoire/docker/initialiser-api.sh
 
 echo "Démarrage de PostgREST..."
 docker compose up -d interface-api
