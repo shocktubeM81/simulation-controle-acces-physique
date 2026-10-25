@@ -71,12 +71,22 @@ class TestsRFID(unittest.TestCase):
     def test_decision_stricte(self, appel):
         for code, sortie, attendu in [(0, 'AUTORISE\n', 'AUTORISE'),
                                       (0, 'REFUSE\n', 'REFUSE'),
-                                      (1, 'AUTORISE', 'REFUSE'),
-                                      (0, 'INFO AUTORISE', 'REFUSE'),
-                                      (0, '', 'REFUSE')]:
+                                      (0, r'REFUSE\n', 'REFUSE')]:
             appel.return_value = subprocess.CompletedProcess([], code, sortie, '')
             self.assertEqual(rfid.verifier_acces('01:02:03:04', 'Laboratoire', Path('.')), attendu)
         self.assertIn('verifier-sync', appel.call_args.args[0])
+
+    @patch.object(rfid.subprocess, 'run')
+    def test_erreur_technique(self, appel):
+        for code, sortie in [(1, 'AUTORISE'), (0, 'INFO AUTORISE'), (0, '')]:
+            appel.return_value = subprocess.CompletedProcess([], code, sortie, '')
+            self.assertIn('erreur technique', rfid.verifier_acces('01:02:03:04', 'Laboratoire', Path('.')))
+
+    @patch.object(rfid.subprocess, 'run')
+    def test_sudo_uniquement_docker(self, appel):
+        appel.return_value = subprocess.CompletedProcess([], 0, 'REFUSE', '')
+        rfid.verifier_acces('01:02:03:04', 'Laboratoire', Path('.'), docker_sudo=True)
+        self.assertEqual(appel.call_args.args[0][:3], ['sudo', '-n', 'docker'])
 
     @patch.object(rfid.subprocess, 'run', side_effect=subprocess.TimeoutExpired('docker', 30))
     def test_delai(self, appel):

@@ -48,9 +48,12 @@ def lire_uid(lecteur):
     raise ValueError("UID incomplet")
 
 
-def verifier_acces(uid, porte, racine):
+def verifier_acces(uid, porte, racine, docker_sudo=False):
     commande = ["docker", "compose", "-f", str(racine / "compose.local.yaml"),
                 "run", "--rm", "-T", "--no-deps", "cache-sqlite", "verifier-sync", uid, porte]
+    if docker_sudo:
+        # Authentification préalable dans le terminal; aucun mot de passe dans Python.
+        commande = ["sudo", "-n"] + commande
     try:
         resultat = subprocess.run(commande, cwd=racine, capture_output=True,
                                   text=True, timeout=30, check=False)
@@ -59,14 +62,20 @@ def verifier_acces(uid, porte, racine):
     # Le CLI existant renvoie aussi 0 lors d'un refus : exiger le texte exact.
     if resultat.returncode == 0 and resultat.stdout.strip() == "AUTORISE":
         return "AUTORISE"
-    return "REFUSE"
+    if resultat.returncode == 0 and resultat.stdout.strip() in ("REFUSE", r"REFUSE\n"):
+        return "REFUSE"
+    return "REFUSE (erreur technique : Docker, sudo ou réponse du moteur; vérifier dans le terminal)"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--porte", help="Active la décision avec le cache synchronisé")
     parser.add_argument("--une-lecture", action="store_true")
+    parser.add_argument("--docker-sudo", action="store_true",
+                        help="Appeler Docker avec sudo -n; exécuter sudo -v au préalable")
     args = parser.parse_args()
+    if args.docker_sudo and not args.porte:
+        parser.error("--docker-sudo nécessite --porte")
     import RPi.GPIO as GPIO
     from mfrc522 import MFRC522
     lecteur = None
@@ -86,7 +95,7 @@ def main():
                     print(f"UID ({len(uid.split(':'))} octets) : {uid}", flush=True)
                     if args.porte:
                         racine = Path(__file__).resolve().parents[1]
-                        print(verifier_acces(uid, args.porte, racine), flush=True)
+                        print(verifier_acces(uid, args.porte, racine, args.docker_sudo), flush=True)
                     else:
                         print("LECTURE CONFIRMEE (autorisation non vérifiée)", flush=True)
                     if args.une_lecture:

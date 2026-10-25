@@ -63,7 +63,18 @@ docker compose -f compose.local.yaml build cache-sqlite
 ~/rfid-test/.venv/bin/python serveur-local/lecteur-rfid.py --porte 'Laboratoire' --une-lecture
 ```
 
-Cette commande utilise les droits Docker du compte courant, comme les outils existants.
+Cette commande utilise les droits Docker du compte courant. Si le compte utilise sudo
+pour Docker (configuration observée sur le banc), garder Python sans sudo et utiliser :
+
+```bash
+sudo -v
+~/rfid-test/.venv/bin/python serveur-local/lecteur-rfid.py --porte 'Laboratoire' --docker-sudo --une-lecture
+```
+
+Seul Docker est alors appelé avec `sudo -n`. Si le ticket sudo expire, l'accès est
+refusé avec un message technique; renouveler avec `sudo -v` dans le même terminal.
+Aucun mot de passe n'est lu ou conservé par le programme. Une erreur Docker ou une
+réponse ambiguë est distinguée de la décision `REFUSE` du moteur.
 Elle n'inscrit aucun badge, ne crée aucune autorisation, ne modifie pas le cache et
 n'ajoute pas d'événement au journal. Un jeton inconnu doit produire `REFUSE`.
 Pour un essai positif, faire enregistrer l'UID complet comme `identifiants.code`
@@ -80,8 +91,9 @@ python3 -m unittest discover -s serveur-local/tests -p 'test_lecteur_rfid.py' -v
 
 Tests simulés : cascade quatre/sept octets, BCC/CRC invalides, format canonique,
 refus sur panne, délai et sortie ambiguë. Ils ne remplacent pas l'essai matériel.
-Le badge quatre octets et SPI ont été validés avant cette intégration; la nouvelle
-lecture en cascade et la décision avec un jeton physique restent à valider sur le Pi.
+Lectures de quatre et sept octets validées sur le Pi avec Python 3.13 et ces dépendances.
+Cache récent et minuteurs validés; appel direct du moteur via sudo validé avec un refus.
+L'appel intégré via `--docker-sudo` et l'essai positif restent à valider sur le Pi.
 Ne publier ni secrets, ni UID physiques, ni captures les contenant.
 
 Références : [MFRC522 NXP](https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf),
