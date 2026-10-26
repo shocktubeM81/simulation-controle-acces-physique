@@ -5,6 +5,7 @@ idf_component_register(
         "horloge.c"
         "diagnostic-mtls.c"
         "journal-client.c"
+        "journal-usb.c"
         "sortie-manuelle.c"
         "LCD_Driver/Vernon_ST7789T/Vernon_ST7789T.c"
         "LCD_Driver/ST7789.c"
@@ -16,8 +17,18 @@ idf_component_register(
         "LVGL_Driver"
 )
 
+option(CONTROLE_JOURNAL_USB "Transport USB du banc, sans Wi-Fi ni PKI" OFF)
+if(CONTROLE_JOURNAL_USB)
+    if(CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG OR CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG)
+        message(FATAL_ERROR "Reserver USB au protocole: choisir console UART ou aucune console dans menuconfig.")
+    endif()
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE JOURNAL_USB_PRESENT=1)
+else()
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE JOURNAL_USB_PRESENT=0)
+endif()
+
 # Le mode LCD reste compilable sans identifiants. Reconfigurer apres ajout/retrait.
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/configuration-wifi.locale.h")
+if(NOT CONTROLE_JOURNAL_USB AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/configuration-wifi.locale.h")
     target_compile_definitions(${COMPONENT_LIB} PRIVATE WIFI_LOCAL_PRESENT=1)
 else()
     target_compile_definitions(${COMPONENT_LIB} PRIVATE WIFI_LOCAL_PRESENT=0)
@@ -27,6 +38,9 @@ endif()
 # Activation volontaire; aucune cle ne doit etre copiee dans les sources.
 set(CONTROLE_JOURNAL_MTLS OFF)
 include("${CMAKE_CURRENT_LIST_DIR}/configuration-journal.locale.cmake" OPTIONAL)
+if(CONTROLE_JOURNAL_USB)
+    set(CONTROLE_JOURNAL_MTLS OFF)
+endif()
 if(CONTROLE_JOURNAL_MTLS)
     if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/configuration-wifi.locale.h")
         message(FATAL_ERROR "Le diagnostic mTLS requiert la configuration Wi-Fi locale.")
@@ -44,3 +58,4 @@ if(CONTROLE_JOURNAL_MTLS)
 else()
     target_compile_definitions(${COMPONENT_LIB} PRIVATE JOURNAL_MTLS_PRESENT=0)
 endif()
+

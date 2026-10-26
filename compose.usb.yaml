@@ -1,0 +1,29 @@
+# À combiner avec compose.local.yaml. Aucun port réseau ni clé privée.
+services:
+  journal-usb:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.usb
+    image: controle-acces-journal-usb:local
+    profiles: ["usb"]
+    restart: unless-stopped
+    read_only: true
+    network_mode: none
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    group_add:
+      - "${USB_GID:-20}"
+    devices:
+      - "${USB_DEVICE:-/dev/ttyACM0}:/dev/esp32"
+    volumes:
+      - journal_usb:/donnees
+    mem_limit: 128m
+    pids_limit: 32
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
+volumes:
+  journal_usb:

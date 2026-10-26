@@ -1,0 +1,10 @@
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-serial \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 journal \
+    && mkdir -p /donnees /opt/controle-acces \
+    && chown 10001:10001 /donnees && chmod 0700 /donnees
+ENV PYTHONDONTWRITEBYTECODE=1
+COPY serveur-local/journal-usb.py serveur-local/journal-evenements.py /opt/controle-acces/
+USER 10001:10001
+ENTRYPOINT ["python3", "-B", "/opt/controle-acces/journal-usb.py"]

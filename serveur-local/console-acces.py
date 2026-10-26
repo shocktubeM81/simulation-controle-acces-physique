@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Console locale : lecteur RFID et événements BOOT reçus par le journal mTLS."""
+"""Console locale : lecteur RFID et événements BOOT reçus par USB ou mTLS."""
 import argparse
 from datetime import datetime
 import importlib.util
@@ -34,14 +34,26 @@ def commande_docker(sudo):
     return (['sudo', '-n'] if sudo else []) + ['docker', 'compose', '-f', str(RACINE / 'compose.local.yaml')]
 
 
-def lire_journal(curseur, sudo):
-    commande = commande_docker(sudo) + ['exec', '-T', 'journal-https', 'python3', '-c',
-                                       LECTURE_JOURNAL, 'initialiser' if curseur is None else str(curseur)]
+def lire_journal(curseur, sudo, transport='mtls'):
+    commande = commande_docker(sudo)
+    script = LECTURE_JOURNAL
+    service = 'journal-https'
+    if transport == 'usb':
+        commande += ['-f', str(RACINE / 'compose.usb.yaml')]
+        service = 'journal-usb'
+        script = script.replace('journal-evenements.sqlite3', 'journal-usb.sqlite3')
+        script = script.replace('    print(json.dumps(resultat))',
+            "    etat = db.execute('SELECT connecte, instant FROM etat WHERE id=1').fetchone()\n"
+            "    import time\n"
+            "    resultat['usb_pret'] = bool(etat and etat[0] and 0 <= time.time() - etat[1] < 5)\n"
+            "    print(json.dumps(resultat))")
+    commande += ['exec', '-T', service, 'python3', '-c',
+                 script, 'initialiser' if curseur is None else str(curseur)]
     resultat = subprocess.run(commande, cwd=RACINE, capture_output=True, text=True, timeout=8)
     if resultat.returncode:
         raise RuntimeError('Journal indisponible : vérifier journal-https et les droits Docker/sudo')
     donnees = json.loads(resultat.stdout)
-    return donnees['curseur'], donnees['evenements']
+    return donnees['curseur'], donnees['evenements'], donnees.get('usb_pret', True)
 
 
 class Presence:
@@ -97,13 +109,13 @@ def suivre_journal(args, messages, arret):
     curseur, etat = None, None
     while not arret.is_set():
         try:
-            curseur, lignes = lire_journal(curseur, args.docker_sudo)
-            nouveau = 'prêt'
+            curseur, lignes, pret = lire_journal(curseur, args.docker_sudo, args.bouton)
+            nouveau = 'USB ouvert' if args.bouton == 'usb' and pret else ('USB déconnecté' if args.bouton == 'usb' else 'prêt')
             for ligne in lignes:
-                if ligne['origine'] == 'MTLS' and ligne['type'] == 'SORTIE_MANUELLE_SIMULEE':
+                if ligne['origine'] == ('USB' if args.bouton == 'usb' else 'MTLS') and ligne['type'] == 'SORTIE_MANUELLE_SIMULEE':
                     messages.put(('evenement', f"BOUTON | sortie manuelle simulée reçue | {ligne['porte']} | {ligne['controleur']} | réception {ligne['recu_a_utc']}"))
         except (OSError, subprocess.TimeoutExpired, RuntimeError, ValueError, KeyError, TypeError):
-            nouveau = 'indisponible — vérifier journal-https / sudo'
+            nouveau = f'indisponible — vérifier journal-{args.bouton if args.bouton == "usb" else "https"} / sudo'
         if nouveau != etat:
             messages.put(('etat', 'Bouton', nouveau))
             etat = nouveau
@@ -119,11 +131,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--porte', required=True, help='Nom exact dans le cache, ex. Laboratoire')
     parser.add_argument('--docker-sudo', action='store_true')
+    parser.add_argument('--bouton', choices=('mtls', 'usb'), default='mtls')
     args = parser.parse_args()
     arret, messages = threading.Event(), queue.Queue()
     etats = {'RFID': 'initialisation', 'Bouton': 'initialisation'}
     print('CONSOLE CONTRÔLE D’ACCÈS — Ctrl+C pour arrêter')
-    print('Le bouton affiche les sorties simulées reçues par le journal mTLS.')
+    print(f'Le bouton affiche les sorties simulées reçues par le journal {args.bouton.upper()}.')
     travailleurs = []
     for cible in (suivre_rfid, suivre_journal):
         travailleur = threading.Thread(target=cible, args=(args, messages, arret), daemon=True)
@@ -155,3 +168,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

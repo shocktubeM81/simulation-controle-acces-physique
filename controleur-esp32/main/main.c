@@ -32,25 +32,43 @@ void app_main(void)
     ESP_LOGI("LCD_TEST", "Test LCD actif, luminosite 50 %%");
 
     sortie_manuelle_initialiser();
+#if !JOURNAL_USB_PRESENT
     reseau_initialiser();
+#endif
     journal_client_initialiser();
+#if JOURNAL_USB_PRESENT
+    EtatReseau etat_courant = {.texte = "USB vers Raspberry Pi"};
+#else
     EtatReseau etat_courant = {.texte = "ESP32-C6"};
+#endif
+    bool premier_affichage = true;
 
     while (1) {
-        bool rafraichir = sortie_manuelle_actualiser();
-        if (rafraichir && sortie_manuelle_active()) {
+        bool changement_sortie = sortie_manuelle_actualiser();
+        bool rafraichir = changement_sortie || premier_affichage;
+        premier_affichage = false;
+        if (changement_sortie && sortie_manuelle_active()) {
             journal_client_ajouter_sortie();
         }
+#if !JOURNAL_USB_PRESENT
         EtatReseau nouvel_etat;
         if (reseau_lire_etat(&nouvel_etat)) {
             etat_courant = nouvel_etat;
             rafraichir = true;
         }
         rafraichir = horloge_actualiser(etat_courant.connecte) || rafraichir;
+#endif
         rafraichir = journal_client_actualiser(
+#if JOURNAL_USB_PRESENT
+            true) || rafraichir;
+#else
             etat_courant.connecte && horloge_disponible()) || rafraichir;
+#endif
         if (rafraichir) {
-            const bool en_erreur = etat_courant.erreur || horloge_erreur() ||
+            const bool en_erreur = etat_courant.erreur ||
+#if !JOURNAL_USB_PRESENT
+                                   horloge_erreur() ||
+#endif
                                    journal_client_erreur();
             const bool sortie_active = sortie_manuelle_active();
             /* L'erreur prime sur l'autorisation simulee; le repos reste neutre. */
@@ -63,7 +81,12 @@ void app_main(void)
                 ? "SORTIE AUTORISEE\nDEVERROUILLAGE\nSIMULE"
                 : "PRET\nBOOT: sortie";
             lv_label_set_text_fmt(label, "%s\n\n%s\n\n%s\n\n%s",
-                                  sortie, etat_courant.texte, horloge_texte(),
+                                  sortie, etat_courant.texte,
+#if JOURNAL_USB_PRESENT
+                                  "Sans Wi-Fi",
+#else
+                                  horloge_texte(),
+#endif
                                   journal_client_texte());
             lv_obj_center(label);
         }
@@ -71,4 +94,5 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
+
 

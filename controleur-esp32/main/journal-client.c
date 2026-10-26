@@ -10,8 +10,12 @@ static char texte[48] = "Journal: desactive";
 const char *journal_client_texte(void) { return texte; }
 bool journal_client_erreur(void) { return perte || en_erreur; }
 
-#if JOURNAL_MTLS_PRESENT
+#if JOURNAL_MTLS_PRESENT || JOURNAL_USB_PRESENT
+#if JOURNAL_USB_PRESENT
+#include "journal-usb.h"
+#else
 #include "diagnostic-mtls.h"
+#endif
 #include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -49,7 +53,12 @@ static bool traiter(const Evenement *evenement)
     snprintf(message, sizeof(message),
         "{\"version\":1,\"id_evenement\":\"%s\",\"porte\":\"PORTE-01\","
         "\"type\":\"SORTIE_MANUELLE_SIMULEE\"}", evenement->id);
-    if (!mtls_enregistrer(evenement->id, message)) {
+#if JOURNAL_USB_PRESENT
+    const bool confirme = usb_enregistrer(evenement->id, message);
+#else
+    const bool confirme = mtls_enregistrer(evenement->id, message);
+#endif
+    if (!confirme) {
         publier(ECHEC);
         ESP_LOGW("JOURNAL", "En attente de confirmation: %s; nouvel essai dans 10 s",
                  evenement->id);
@@ -80,6 +89,13 @@ static void envoyer(void *contexte)
 
 void journal_client_initialiser(void)
 {
+#if JOURNAL_USB_PRESENT
+    if (!usb_initialiser()) {
+        en_erreur = true;
+        snprintf(texte, sizeof(texte), "USB: erreur pilote");
+        return;
+    }
+#endif
     file = xQueueCreate(CAPACITE, sizeof(Evenement));
     etats = xQueueCreate(1, sizeof(EtatEnvoi));
     conditions = xEventGroupCreate();
@@ -118,6 +134,9 @@ bool journal_client_ajouter_sortie(void)
 
 bool journal_client_actualiser(bool pret)
 {
+#if JOURNAL_USB_PRESENT
+    pret = true; /* Le transport USB ne depend ni du Wi-Fi ni de SNTP. */
+#endif
     char precedent[sizeof(texte)];
     memcpy(precedent, texte, sizeof(texte));
     bool ancienne_erreur = journal_client_erreur();
@@ -146,3 +165,4 @@ void journal_client_initialiser(void) { }
 bool journal_client_ajouter_sortie(void) { return false; }
 bool journal_client_actualiser(bool pret) { (void)pret; return false; }
 #endif
+

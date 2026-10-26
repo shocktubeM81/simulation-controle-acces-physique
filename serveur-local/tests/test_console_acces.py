@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('console', Path(__file__).parents[1] / 'console-acces.py')
 console = importlib.util.module_from_spec(spec)
@@ -13,6 +14,26 @@ spec.loader.exec_module(console)
 
 
 class TestsConsole(unittest.TestCase):
+    def test_suivi_usb_connexion_et_curseur(self):
+        vrai_run = subprocess.run
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as dossier:
+            base = Path(dossier) / 'usb.sqlite3'
+            db = sqlite3.connect(base)
+            db.execute('CREATE TABLE evenements (numero INTEGER PRIMARY KEY, controleur TEXT, porte TEXT, type TEXT, origine TEXT, recu_a_utc TEXT)')
+            db.execute('CREATE TABLE etat (id INTEGER PRIMARY KEY, connecte INTEGER, instant REAL)')
+            db.execute('INSERT INTO etat VALUES (1, 0, 0)')
+            db.commit()
+            db.close()
+
+            def executer(commande, **options):
+                self.assertIn('journal-usb', commande)
+                self.assertTrue(any(str(c).endswith('compose.usb.yaml') for c in commande))
+                script = commande[-2].replace('file:/donnees/journal-usb.sqlite3?mode=ro', base.as_uri() + '?mode=ro')
+                return vrai_run([sys.executable, '-c', script, commande[-1]], capture_output=True, text=True, check=True)
+
+            with patch.object(console.subprocess, 'run', side_effect=executer):
+                self.assertEqual(console.lire_journal(None, True, 'usb'), (0, [], False))
+
     def test_badge_maintenu_et_retrait(self):
         presence = console.Presence()
         self.assertTrue(presence.nouveau('A', 0))
