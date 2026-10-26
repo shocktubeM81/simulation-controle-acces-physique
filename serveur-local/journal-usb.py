@@ -8,6 +8,33 @@ import os
 from pathlib import Path
 import sqlite3
 import time
+import uuid
+
+DECISIONS = {'AUTORISE', 'REFUSE', 'ERREUR'}
+
+
+def programmer_affichage(base, decision):
+    if decision not in DECISIONS:
+        raise ValueError('Décision d’affichage invalide')
+    destination = Path(base).with_name('affichage-usb.json')
+    temporaire = destination.with_name(f'.affichage-{uuid.uuid4()}.tmp')
+    try:
+        with temporaire.open('x', encoding='utf-8') as fichier:
+            json.dump({'id': str(uuid.uuid4()), 'decision': decision, 'instant': time.time()}, fichier)
+        temporaire.replace(destination)
+    finally:
+        temporaire.unlink(missing_ok=True)
+
+
+def prochain_affichage(base, precedent):
+    try:
+        donnees = json.loads(Path(base).with_name('affichage-usb.json').read_text(encoding='utf-8'))
+        if (donnees['id'] == precedent or donnees['decision'] not in DECISIONS
+                or not 0 <= time.time() - donnees['instant'] <= 5):
+            return precedent, None
+        return donnees['id'], ('AFF ' + donnees['decision'] + '\n').encode('ascii')
+    except (OSError, ValueError, KeyError, TypeError):
+        return precedent, None
 
 spec = importlib.util.spec_from_file_location('validation_journal', Path(__file__).with_name('journal-evenements.py'))
 validation = importlib.util.module_from_spec(spec)
@@ -98,7 +125,13 @@ def main():
     parser.add_argument('--port', default='/dev/esp32')
     parser.add_argument('--base', default='/donnees/journal-usb.sqlite3')
     parser.add_argument('--porte', default='PORTE-01')
+    parser.add_argument('--afficher', choices=sorted(DECISIONS),
+                        help='Demander un affichage temporaire au récepteur USB actif')
     args = parser.parse_args()
+    os.umask(0o077)
+    if args.afficher:
+        programmer_affichage(args.base, args.afficher)
+        return
     if validation.IDENTIFIANT.fullmatch(args.porte) is None:
         parser.error('Identifiant de porte invalide')
     os.umask(0o077)
@@ -116,7 +149,7 @@ def main():
                 connexion.open()
                 with connexion as port:
                     print('USB : port ouvert', flush=True)
-                    trames, dernier_etat = Trames(), 0
+                    trames, dernier_etat, dernier_affichage = Trames(), 0, None
                     while True:
                         for contenu in trames.recevoir(port.read(128)):
                             try:
@@ -127,6 +160,12 @@ def main():
                             if port.write(ack) != len(ack):
                                 raise serial.SerialException('ACK incomplet')
                             port.flush()
+                        identifiant, affichage = prochain_affichage(args.base, dernier_affichage)
+                        if affichage is not None:
+                            if port.write(affichage) != len(affichage):
+                                raise serial.SerialException('Affichage incomplet')
+                            port.flush()
+                            dernier_affichage = identifiant
                         if time.monotonic() - dernier_etat >= 1:
                             etat_port(args.base, True)
                             dernier_etat = time.monotonic()

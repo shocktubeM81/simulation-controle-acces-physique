@@ -14,6 +14,17 @@ spec.loader.exec_module(console)
 
 
 class TestsConsole(unittest.TestCase):
+    @patch.object(console.subprocess, 'run')
+    def test_retour_ecran_refus_par_defaut(self, appel):
+        appel.return_value = subprocess.CompletedProcess([], 0, '', '')
+        for decision, attendu in [('AUTORISE', 'AUTORISE'), ('REFUSE', 'REFUSE'),
+                                  ('REFUSE (moteur indisponible)', 'ERREUR')]:
+            self.assertTrue(console.transmettre_affichage(decision, True))
+            self.assertEqual(appel.call_args.args[0][-2:], ['--afficher', attendu])
+            self.assertEqual(appel.call_args.args[0][:3], ['sudo', '-n', 'docker'])
+        appel.return_value = subprocess.CompletedProcess([], 1, '', '')
+        self.assertFalse(console.transmettre_affichage('AUTORISE', True))
+
     def test_suivi_usb_connexion_et_curseur(self):
         vrai_run = subprocess.run
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as dossier:

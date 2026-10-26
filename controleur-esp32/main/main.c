@@ -10,6 +10,9 @@
 #include "horloge.h"
 #include "journal-client.h"
 #include "sortie-manuelle.h"
+#if JOURNAL_USB_PRESENT
+#include "journal-usb.h"
+#endif
 
 void app_main(void)
 {
@@ -42,11 +45,27 @@ void app_main(void)
     EtatReseau etat_courant = {.texte = "ESP32-C6"};
 #endif
     bool premier_affichage = true;
+#if JOURNAL_USB_PRESENT
+    DecisionUSB decision_rfid = USB_AUCUNE;
+    TickType_t decision_depuis = 0;
+#endif
 
     while (1) {
         bool changement_sortie = sortie_manuelle_actualiser();
         bool rafraichir = changement_sortie || premier_affichage;
         premier_affichage = false;
+#if JOURNAL_USB_PRESENT
+        DecisionUSB nouvelle_decision = usb_actualiser();
+        if (nouvelle_decision != USB_AUCUNE) {
+            decision_rfid = nouvelle_decision;
+            decision_depuis = xTaskGetTickCount();
+            rafraichir = true;
+        } else if (decision_rfid != USB_AUCUNE &&
+                   (TickType_t)(xTaskGetTickCount() - decision_depuis) >= pdMS_TO_TICKS(3000)) {
+            decision_rfid = USB_AUCUNE;
+            rafraichir = true;
+        }
+#endif
         if (changement_sortie && sortie_manuelle_active()) {
             journal_client_ajouter_sortie();
         }
@@ -72,14 +91,22 @@ void app_main(void)
                                    journal_client_erreur();
             const bool sortie_active = sortie_manuelle_active();
             /* L'erreur prime sur l'autorisation simulee; le repos reste neutre. */
-            const uint32_t fond = en_erreur ? 0xF4A300
+            uint32_t fond = en_erreur ? 0xF4A300
                 : (sortie_active ? 0x006B32 : 0x102030);
-            lv_obj_set_style_bg_color(screen, lv_color_hex(fond), 0);
-            lv_obj_set_style_text_color(
-                label, lv_color_hex(en_erreur ? 0x101010 : 0xFFFFFF), 0);
             const char *sortie = sortie_active
                 ? "SORTIE AUTORISEE\nDEVERROUILLAGE\nSIMULE"
                 : "PRET\nBOOT: sortie";
+#if JOURNAL_USB_PRESENT
+            if (decision_rfid != USB_AUCUNE) {
+                sortie = decision_rfid == USB_AUTORISE ? "CARTE\nACCES AUTORISE"
+                    : (decision_rfid == USB_REFUSE ? "CARTE\nACCES REFUSE" : "CARTE\nERREUR TECHNIQUE");
+                if (!en_erreur) fond = decision_rfid == USB_AUTORISE ? 0x006B32
+                    : (decision_rfid == USB_REFUSE ? 0xA00000 : 0xF4A300);
+            }
+#endif
+            lv_obj_set_style_bg_color(screen, lv_color_hex(fond), 0);
+            lv_obj_set_style_text_color(
+                label, lv_color_hex(en_erreur ? 0x101010 : 0xFFFFFF), 0);
             lv_label_set_text_fmt(label, "%s\n\n%s\n\n%s\n\n%s",
                                   sortie, etat_courant.texte,
 #if JOURNAL_USB_PRESENT

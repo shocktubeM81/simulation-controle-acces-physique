@@ -18,6 +18,18 @@ def evenement(identifiant=None, porte='PORTE-01'):
 
 
 class TestsUSB(unittest.TestCase):
+    def test_affichage_temporaire_et_expiration(self):
+        with self.assertRaises(ValueError):
+            usb.programmer_affichage(self.base, 'AUTORISE\nACK pirate')
+        usb.programmer_affichage(self.base, 'AUTORISE')
+        identifiant, trame = usb.prochain_affichage(self.base, None)
+        self.assertEqual(trame, b'AFF AUTORISE\n')
+        self.assertEqual(usb.prochain_affichage(self.base, identifiant), (identifiant, None))
+        with patch.object(usb.time, 'time', return_value=usb.time.time() + 10):
+            self.assertEqual(usb.prochain_affichage(self.base, None), (None, None))
+        usb.programmer_affichage(self.base, 'REFUSE')
+        self.assertEqual(usb.prochain_affichage(self.base, identifiant)[1], b'AFF REFUSE\n')
+
     def setUp(self):
         self.dossier = tempfile.TemporaryDirectory(dir=Path(__file__).parent)
         self.base = Path(self.dossier.name) / 'usb.sqlite3'

@@ -129,6 +129,41 @@ sudo docker compose -f compose.local.yaml -f compose.usb.yaml stop journal-usb
 
 ## Vérifications de développement
 
+### Retour RFID vers l'écran
+
+La console avec `--bouton usb` transmet désormais le résultat de la vérification
+au récepteur USB. Celui-ci envoie `AFF AUTORISE`, `AFF REFUSE` ou `AFF ERREUR` à
+l'ESP32. Le fond devient vert, rouge ou orange pendant trois secondes, puis
+revient au repos. Une erreur du journal reste prioritaire sur la couleur.
+La décision et le cache restent sur le Pi : voir [l'architecture simplifiée](architecture-simplifiee.md).
+
+Ce retour nécessite de mettre à jour ET recompiler/téléverser l'ESP32, puis de
+mettre à jour le Pi, reconstruire/recréer `journal-usb` et relancer la console.
+Le branchement et les commandes de construction ci-dessus restent valables.
+Après mise à jour du code sur le Pi :
+
+```bash
+sudo env USB_GID="$(stat -c '%g' /dev/ttyACM0)" \
+  docker compose -f compose.local.yaml -f compose.usb.yaml \
+  --profile usb up -d --build --force-recreate journal-usb
+```
+
+Le dernier résultat est transmis via un petit fichier remplacé atomiquement dans
+le volume USB, sans UID. Seul le récepteur ouvre le port série. Le résultat expire
+après cinq secondes s'il n'a pas été envoyé; des résultats rapprochés peuvent être
+remplacés par le plus récent. Cet affichage temporaire n'est pas un journal d'audit
+et n'a pas d'accusé d'affichage : la console signale une demande de transmission,
+pas la preuve que l'écran a changé. Une panne du retour ne change pas la décision.
+
+Sur l'ESP32, app_main lit et sépare les ACK des résultats d'affichage, même sans
+appui BOOT. Les ACK sont transmis à la tâche du journal via une file FreeRTOS;
+un résultat d'affichage ne peut pas confirmer un événement BOOT.
+
+Tests du retour : 24 tests Python passent; les tests C étendus compilent sans
+avertissement. Exécution C, compilation ESP-IDF et couleurs du nouveau programme
+restent à valider sur Linux et sur la carte. Le transport USB BOOT initial, le
+flash de la version précédente, et la lecture/décision RFID ont été validés sur le banc.
+
 ```bash
 python3 -m unittest discover -s serveur-local/tests -p 'test_journal_usb.py' -v
 python3 -m unittest discover -s serveur-local/tests -p 'test_console_acces.py' -v

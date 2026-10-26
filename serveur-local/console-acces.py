@@ -34,6 +34,19 @@ def commande_docker(sudo):
     return (['sudo', '-n'] if sudo else []) + ['docker', 'compose', '-f', str(RACINE / 'compose.local.yaml')]
 
 
+def transmettre_affichage(decision, sudo):
+    # Une panne du moteur ne doit pas être affichée comme une autorisation.
+    statut = decision if decision in ('AUTORISE', 'REFUSE') else 'ERREUR'
+    commande = commande_docker(sudo) + ['-f', str(RACINE / 'compose.usb.yaml'),
+        'exec', '-T', 'journal-usb', 'python3', '/opt/controle-acces/journal-usb.py',
+        '--afficher', statut]
+    try:
+        resultat = subprocess.run(commande, cwd=RACINE, capture_output=True, text=True, timeout=8)
+        return resultat.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def lire_journal(curseur, sudo, transport='mtls'):
     commande = commande_docker(sudo)
     script = LECTURE_JOURNAL
@@ -94,6 +107,8 @@ def suivre_rfid(args, messages, arret):
                 messages.put(('evenement', f'CARTE | {uid} | vérification…'))
                 decision = rfid.verifier_acces(uid, args.porte, RACINE, args.docker_sudo)
                 messages.put(('evenement', f'CARTE | {uid} | {args.porte} | {decision}'))
+                if args.bouton == 'usb' and not transmettre_affichage(decision, args.docker_sudo):
+                    messages.put(('evenement', 'ÉCRAN | retour USB indisponible; vérifier le récepteur'))
                 # Le délai Docker ne doit pas réarmer un badge resté sur le lecteur.
                 presence.dernier = time.monotonic()
             arret.wait(0.1)
